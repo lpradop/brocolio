@@ -1,4 +1,6 @@
 #pragma once
+namespace brocolio {
+namespace container {
 // SimpleNode template by Brocolio de la CHUNSA
 // This template only have a reference to the next node, use DoublyNode if you
 // want previous node reference
@@ -13,3 +15,5 @@ template <class DataType> struct SimpleNode {
 template <class DataType>
 SimpleNode<DataType>::SimpleNode(DataType data, SimpleNode *next)
     : data(data), next(next) {}
+} // namespace container
+} // namespace brocolio
