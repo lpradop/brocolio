@@ -1,8 +1,9 @@
 #pragma once
 #include <initializer_list>
 #include <iostream>
-// prototipo de clase, quiza presente bugs, lo ire mejorando poco a poco.
-// TODO implementar destructor
+
+// SquareMatrix template by brocolio de la CHUNSA
+// TODO add data verification on constructor
 template <class DataType, std::size_t size> class SquareMatrix {
 private:
   DataType **matrix_;
@@ -38,9 +39,9 @@ public:
   }
 
   DataType *operator[](const int i) const {
-    if (i > size) {
+    if (i > size or i < 0) {
       std::cout << "Index out of bounds" << std::endl;
-      return matrix_[i];
+      return DataType{};
     }
     return matrix_[i];
   }
@@ -84,7 +85,7 @@ DataType SquareMatrix<DataType, size>::ProductElement(
     const SquareMatrix<DataType, size> &a,
     const SquareMatrix<DataType, size> &b, const int i, const int j) {
   DataType element{};
-  for (int t = 0; t < size; ++t)
+  for (std::size_t t = 0; t < size; ++t)
     element += a[i][t] * b[t][j];
   return element;
 }
@@ -99,4 +100,9 @@ void SquareMatrix<DataType, size>::Print() const {
 }
 
 template <class DataType, std::size_t size>
-SquareMatrix<DataType, size>::~SquareMatrix() {}
+SquareMatrix<DataType, size>::~SquareMatrix() {
+  for (std::size_t i; i < size; ++i) {
+    delete[] matrix_[i];
+  }
+  delete[] matrix_;
+}
