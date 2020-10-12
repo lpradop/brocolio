@@ -1,4 +1,5 @@
 #pragma once
+// OrderedPair by Brocolio de la CHUNSA
 template <class T, class S> struct OrderedPair {
   T x{};
   S y{};
