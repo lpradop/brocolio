@@ -7,40 +7,40 @@ namespace brocolio {
 namespace container {
 
 // TODO mejorar la funcion search
-template <class DataType> class SimpleLinkedList {
+template <class DataType> class simple_linked_list {
 private:
-  struct Node;
-  Node *head_;
+  struct node;
+  node *head_;
   std::size_t size_;
 
 public:
-  class Iterator;
-  SimpleLinkedList();
-  ~SimpleLinkedList();
-  SimpleLinkedList(const SimpleLinkedList<DataType> &other);
-  void Insert(const DataType data, const std::size_t position = 0);
-  void Remove(const std::size_t position = 0);
+  class iterator;
+  simple_linked_list();
+  ~simple_linked_list();
+  simple_linked_list(const simple_linked_list<DataType> &other);
+  void insert(const DataType data, const std::size_t position = 0);
+  void remove(const std::size_t position = 0);
 
   // TODO refactor
   // template <class... Args>
   // SimpleLinkedList<std::pair<DataType, unsigned int>>
   // Search(bool (*Criteria)(const DataType, Args...), Args... args);
 
-  Iterator Begin() const;
-  Iterator End() const;
-  std::size_t GetSize() const;
-  void Clear();
-  void Print() const;
+  iterator begin() const;
+  iterator end() const;
+  std::size_t size() const;
+  void clear();
+  void print() const;
 
   DataType &operator[](const std::size_t index) const {
     if (index >= 0 and index < size_) {
-      auto node = head_;
+      auto tmp = head_;
       std::size_t counter = 0;
-      while (node != nullptr and counter < index) {
+      while (tmp != nullptr and counter < index) {
         ++counter;
-        node = node->next;
+        tmp = tmp->next;
       }
-      return node->data_;
+      return tmp->data_;
     } else {
       std::cout << "Element out of bounds" << std::endl;
       return DataType{};
@@ -49,30 +49,30 @@ public:
 };
 
 template <class DataType>
-void SimpleLinkedList<DataType>::Insert(const DataType data,
-                                        const std::size_t position) {
+void simple_linked_list<DataType>::insert(const DataType data,
+                                          const std::size_t position) {
   if (position < size_) {
     if (position == 0) {
-      head_ = new Node(data, head_);
+      head_ = new node(data, head_);
     } else {
-      Node *node = head_;
+      node *tmp = head_;
 
       for (unsigned int i = 0; i < position - 1; ++i) {
-        node = node->next;
+        tmp = tmp->next;
       }
-      node->next = new Node(data, node->next);
+      tmp->next = new node(data, tmp->next);
     }
   } else {
     if (size_ == 0) {
-      head_ = new Node(data, nullptr);
+      head_ = new node(data, nullptr);
     } else {
-      Node *node = head_;
-      while (node != nullptr) {
-        if (node->next == nullptr)
+      node *tmp = head_;
+      while (tmp != nullptr) {
+        if (tmp->next == nullptr)
           break;
-        node = node->next;
+        tmp = tmp->next;
       }
-      node->next = new Node(data, nullptr);
+      tmp->next = new node(data, nullptr);
     }
   }
   ++size_;
@@ -100,10 +100,10 @@ void SimpleLinkedList<DataType>::Insert(const DataType data,
 // }
 
 template <class DataType>
-void SimpleLinkedList<DataType>::Remove(std::size_t position) {
+void simple_linked_list<DataType>::remove(std::size_t position) {
   if (position < size_) {
-    Node *previous_node = head_;
-    Node *current_node = previous_node->next;
+    node *previous_node = head_;
+    node *current_node = previous_node->next;
 
     if (position == 0) {
       head_ = current_node;
@@ -123,18 +123,19 @@ void SimpleLinkedList<DataType>::Remove(std::size_t position) {
 }
 
 template <class DataType>
-SimpleLinkedList<DataType>::SimpleLinkedList(const SimpleLinkedList &other)
+simple_linked_list<DataType>::simple_linked_list(
+    const simple_linked_list &other)
     : size_(other.size_) {
   if (size_ == 0) {
     head_ = nullptr;
   } else {
 
-    head_ = new Node{other.head_->data_, nullptr};
-    Node *other_node = other.head_->next;
-    Node *this_node = head_;
+    head_ = new node{other.head_->data_, nullptr};
+    node *other_node = other.head_->next;
+    node *this_node = head_;
 
     while (other_node != nullptr) {
-      this_node->next = new Node{other_node->data_, nullptr};
+      this_node->next = new node{other_node->data_, nullptr};
       this_node = this_node->next;
       other_node = other_node->next;
     }
@@ -142,10 +143,10 @@ SimpleLinkedList<DataType>::SimpleLinkedList(const SimpleLinkedList &other)
 }
 
 template <class DataType>
-SimpleLinkedList<DataType>::SimpleLinkedList() : size_(0), head_(nullptr) {}
+simple_linked_list<DataType>::simple_linked_list() : size_(0), head_(nullptr) {}
 
-template <class DataType> SimpleLinkedList<DataType>::~SimpleLinkedList() {
-  Node *tmp;
+template <class DataType> simple_linked_list<DataType>::~simple_linked_list() {
+  node *tmp;
   while (head_ != nullptr) {
     tmp = head_->next;
     delete head_;
@@ -153,12 +154,12 @@ template <class DataType> SimpleLinkedList<DataType>::~SimpleLinkedList() {
   }
 }
 template <class DataType>
-std::size_t SimpleLinkedList<DataType>::GetSize() const {
+std::size_t simple_linked_list<DataType>::size() const {
   return size_;
 }
 
-template <class DataType> void SimpleLinkedList<DataType>::Clear() {
-  Node *temp;
+template <class DataType> void simple_linked_list<DataType>::clear() {
+  node *temp;
   while (head_ != nullptr) {
     temp = head_->next;
     delete head_;
@@ -168,20 +169,20 @@ template <class DataType> void SimpleLinkedList<DataType>::Clear() {
 }
 
 template <class DataType>
-typename SimpleLinkedList<DataType>::Iterator
-SimpleLinkedList<DataType>::Begin() const {
-  return Iterator{head_};
+typename simple_linked_list<DataType>::iterator
+simple_linked_list<DataType>::begin() const {
+  return iterator{head_};
 }
 
 template <class DataType>
-typename SimpleLinkedList<DataType>::Iterator
-SimpleLinkedList<DataType>::End() const {
-  return Iterator{nullptr};
+typename simple_linked_list<DataType>::iterator
+simple_linked_list<DataType>::end() const {
+  return iterator{nullptr};
 }
 
-template <class DataType> void SimpleLinkedList<DataType>::Print() const {
+template <class DataType> void simple_linked_list<DataType>::print() const {
 
-  Node *node = head_;
+  node *node = head_;
   while (node != nullptr) {
     std::cout << node->data << " -> ";
     node = node->next;
@@ -189,24 +190,24 @@ template <class DataType> void SimpleLinkedList<DataType>::Print() const {
   std::cout << "NULL" << std::endl;
 }
 
-template <class DataType> class SimpleLinkedList<DataType>::Iterator {
+template <class DataType> class simple_linked_list<DataType>::iterator {
 private:
-  Node *node_;
-  Iterator(Node *node = nullptr) : node_(node){};
+  node *node_;
+  iterator(node *node = nullptr) : node_(node){};
 
   template <class T> friend class SimpleLinkedList;
 
 public:
-  ~Iterator() = default;
-  Iterator &operator++() {
+  ~iterator() = default;
+  iterator &operator++() {
     if (node_ != nullptr) {
       node_ = node_->next;
     }
     return *this;
   };
-  Iterator &operator++(int) {
+  iterator &operator++(int) {
     if (node_ != nullptr) {
-      Iterator tmp(*this);
+      iterator tmp(*this);
       operator++();
       return tmp;
     } else {
@@ -214,19 +215,19 @@ public:
     }
   }
   DataType &operator*() const { return (this->node_)->data; }
-  bool operator==(const Iterator &obj) const {
+  bool operator==(const iterator &obj) const {
     return (this->node_ == obj.node_);
   }
-  bool operator!=(const Iterator &obj) const { return not(*this == obj); }
+  bool operator!=(const iterator &obj) const { return not(*this == obj); }
 };
 
-template <class DataType> struct SimpleLinkedList<DataType>::Node {
+template <class DataType> struct simple_linked_list<DataType>::node {
   DataType data;
-  Node *next;
-  Node() = delete;
-  Node(DataType data = DataType{}, Node *next = nullptr)
+  node *next;
+  node() = delete;
+  node(DataType data = DataType{}, node *next = nullptr)
       : data(data), next(next) {}
-  ~Node() = default;
+  ~node() = default;
 };
 } // namespace container
 } // namespace brocolio
