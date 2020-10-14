@@ -10,14 +10,14 @@ namespace container {
 template <class DataType> class simple_linked_list {
 private:
   struct node;
-  node *head_;
-  std::size_t size_;
+  node *head_{nullptr};
+  std::size_t size_{0};
 
 public:
   class iterator;
-  simple_linked_list();
+  simple_linked_list() = default;
   ~simple_linked_list();
-  simple_linked_list(const simple_linked_list<DataType> &other);
+  simple_linked_list(const simple_linked_list &);
   void insert(const DataType data, const std::size_t position = 0);
   void remove(const std::size_t position = 0);
 
@@ -142,9 +142,6 @@ simple_linked_list<DataType>::simple_linked_list(
   }
 }
 
-template <class DataType>
-simple_linked_list<DataType>::simple_linked_list() : size_(0), head_(nullptr) {}
-
 template <class DataType> simple_linked_list<DataType>::~simple_linked_list() {
   node *tmp;
   while (head_ != nullptr) {
@@ -192,9 +189,10 @@ template <class DataType> void simple_linked_list<DataType>::print() const {
 
 template <class DataType> class simple_linked_list<DataType>::iterator {
 private:
-  node *node_;
-  iterator(node *node = nullptr) : node_(node){};
+  node *node_{nullptr};
 
+  iterator() = default;
+  iterator(node *node) : node_(node){};
   template <class T> friend class SimpleLinkedList;
 
 public:
@@ -222,11 +220,10 @@ public:
 };
 
 template <class DataType> struct simple_linked_list<DataType>::node {
-  DataType data;
-  node *next;
-  node() = delete;
-  node(DataType data = DataType{}, node *next = nullptr)
-      : data(data), next(next) {}
+  DataType data{};
+  node *next{nullptr};
+  node() = default;
+  node(DataType data, node *next) : data(data), next(next) {}
   ~node() = default;
 };
 } // namespace container
