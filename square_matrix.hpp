@@ -6,18 +6,18 @@
 // TODO add data verification on constructor
 template <class DataType, std::size_t size> class SquareMatrix {
 private:
-  DataType **matrix_;
-  static DataType ProductElement(const SquareMatrix<DataType, size> &a,
-                                 const SquareMatrix<DataType, size> &b,
-                                 const int i, const int j);
+  DataType **matrix_ = nullptr;
+
+  static DataType product_element(const SquareMatrix<DataType, size> &a,
+                                  const SquareMatrix<DataType, size> &b,
+                                  const int i, const int j);
 
 public:
   SquareMatrix(std::initializer_list<std::initializer_list<DataType>> matrix);
   SquareMatrix(const SquareMatrix<DataType, size> &other);
   SquareMatrix() = delete;
   ~SquareMatrix();
-
-  void Print() const;
+  void print() const;
 
   SquareMatrix<DataType, size> &
   operator*=(const SquareMatrix<DataType, size> &rhs) {
@@ -25,7 +25,7 @@ public:
     auto b = rhs;
     for (int i = 0; i < size; ++i) {
       for (int j = 0; j < size; ++j) {
-        this->matrix_[i][j] = SquareMatrix::ProductElement(a, b, i, j);
+        this->matrix_[i][j] = SquareMatrix::product_element(a, b, i, j);
       }
     }
     return *this;
@@ -38,12 +38,12 @@ public:
     return lhs;
   }
 
-  DataType *operator[](const int i) const {
-    if (i > size or i < 0) {
-      std::cout << "Index out of bounds" << std::endl;
+  DataType *operator[](const int index) const {
+    if (index > size or index < 0) {
+      std::cout << "index out of bounds" << std::endl;
       return DataType{};
     }
-    return matrix_[i];
+    return matrix_[index];
   }
 };
 
@@ -81,7 +81,7 @@ SquareMatrix<DataType, size>::SquareMatrix(
 }
 
 template <class DataType, std::size_t size>
-DataType SquareMatrix<DataType, size>::ProductElement(
+DataType SquareMatrix<DataType, size>::product_element(
     const SquareMatrix<DataType, size> &a,
     const SquareMatrix<DataType, size> &b, const int i, const int j) {
   DataType element{};
@@ -91,7 +91,7 @@ DataType SquareMatrix<DataType, size>::ProductElement(
 }
 
 template <class DataType, std::size_t size>
-void SquareMatrix<DataType, size>::Print() const {
+void SquareMatrix<DataType, size>::print() const {
   for (int row = 0; row < size; ++row) {
     for (int column = 0; column < size; ++column)
       std::cout << matrix_[row][column] << " ";
