@@ -60,10 +60,10 @@ public:
     }
   }
   DataType &operator*() const { return (this->node_)->data; }
-  bool operator==(const iterator &obj) const {
-    return (this->node_ == obj.node_);
+  bool operator==(const iterator &other) const {
+    return (this->node_ == other.node_);
   }
-  bool operator!=(const iterator &obj) const { return not(*this == obj); }
+  bool operator!=(const iterator &other) const { return not(*this == other); }
 };
 
 template <class DataType>
