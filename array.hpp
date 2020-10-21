@@ -9,7 +9,7 @@ public:
   static_assert(array_size > 0, "array must be at least size 1");
   class iterator;
   class const_iterator;
-  array() = default;
+  array() : c_array_(new DataType[array_size]) {}
   array(const array &);
   array(array &&);
   array(const DataType (&array)[array_size]);
@@ -26,7 +26,7 @@ public:
   const_iterator cend() const;
 
 private:
-  DataType *c_array_{new DataType[array_size]};
+  DataType *c_array_{nullptr};
 };
 
 template <class DataType, std::size_t array_size>
@@ -159,7 +159,8 @@ array<DataType, array_size>::const_iterator::operator++() {
 }
 
 template <class DataType, std::size_t array_size>
-array<DataType, array_size>::array(const array &other) {
+array<DataType, array_size>::array(const array &other)
+    : c_array_(new DataType[array_size]) {
   if (this->size() == other.size()) {
     for (std::size_t i = 0; i < array_size; ++i) {
       c_array_[i] = other.c_array_[i];
@@ -203,7 +204,8 @@ array<DataType, array_size>::array(const DataType (&array)[array_size])
 }
 
 template <class DataType, std::size_t array_size>
-array<DataType, array_size>::array(const std::initializer_list<DataType> il) {
+array<DataType, array_size>::array(const std::initializer_list<DataType> il)
+    : c_array_(new DataType[array_size]) {
   if (size() == il.size()) {
     std::size_t i = 0;
     for (auto &e : il) {
