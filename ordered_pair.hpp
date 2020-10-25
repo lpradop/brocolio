@@ -7,10 +7,11 @@ template <class T, class S> struct ordered_pair {
   T x{};
   S y{};
   ordered_pair() = default;
+  ordered_pair(const ordered_pair &) = default;
   ~ordered_pair() = default;
-  ordered_pair(const T x, const S y);
+  ordered_pair(const T x, const S y) : x(x), y(y) {}
 
-  bool operator==(const ordered_pair<T, S> other) {
+  bool operator==(const ordered_pair<T, S> &other) {
     return (x == other.x and y == other.y);
   };
 
@@ -19,7 +20,5 @@ template <class T, class S> struct ordered_pair {
   }
 };
 
-template <class T, class S>
-ordered_pair<T, S>::ordered_pair(const T x, const S y) : x(x), y(y) {}
 } // namespace container
 } // namespace brocolio

@@ -25,5 +25,16 @@ search(const Container &container, typename Container::iterator iterator,
   }
   return container.end();
 }
+
+template <class Iterator, class UnaryPredicate>
+bool all_of(Iterator begin, Iterator end, UnaryPredicate unary_predicate) {
+  for (; begin != end; ++begin) {
+    if (not unary_predicate(*begin)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace algorithm
 } // namespace brocolio
