@@ -1,113 +1,122 @@
 #pragma once
-#include <initializer_list>
-#include <iostream>
+#include "algorithm.hpp"
+#include "array.hpp"
 
 namespace brocolio {
 namespace container {
 
 // SquareMatrix template by brocolio de la CHUNSA
-// TODO add data verification on constructor
-template <class DataType, std::size_t size> class square_matrix {
-private:
-  DataType **matrix_{nullptr};
-
-  static DataType product_element(const square_matrix<DataType, size> &a,
-                                  const square_matrix<DataType, size> &b,
-                                  const int i, const int j);
-
+// add exceptions, complete refactor using array
+template <class DataType, std::size_t matrix_size> class square_matrix {
 public:
-  square_matrix(std::initializer_list<std::initializer_list<DataType>> matrix);
-  square_matrix(const square_matrix<DataType, size> &other);
-  square_matrix() = delete;
+  class iterator;
+  class const_iterator;
+  square_matrix()
+      : matrix_(new array<array<DataType, matrix_size>, matrix_size>{}) {}
+  square_matrix(const square_matrix &);
+  square_matrix(square_matrix &&);
+  square_matrix(
+      const std::initializer_list<std::initializer_list<DataType>> il);
   ~square_matrix();
-  void print() const;
+  square_matrix &operator=(const square_matrix &);
+  square_matrix &operator=(square_matrix &&);
+  constexpr std::size_t size() const { return matrix_size; };
 
-  square_matrix<DataType, size> &
-  operator*=(const square_matrix<DataType, size> &rhs) {
-    auto a = *this;
-    auto b = rhs;
-    for (int i = 0; i < size; ++i) {
-      for (int j = 0; j < size; ++j) {
-        this->matrix_[i][j] = square_matrix::product_element(a, b, i, j);
-      }
-    }
-    return *this;
-  }
+  square_matrix &operator*=(const square_matrix<DataType, matrix_size> &rhs);
+  array<DataType, matrix_size> &operator[](const std::size_t index);
 
-  friend square_matrix<DataType, size>
-  operator*(square_matrix<DataType, size> lhs,
-            const square_matrix<DataType, size> &rhs) {
-    lhs *= rhs;
-    return lhs;
-  }
 
-  DataType *operator[](const int index) const {
-    if (index > size or index < 0) {
-      std::cout << "index out of bounds" << std::endl;
-      return DataType{};
-    }
-    return matrix_[index];
-  }
+private:
+  array<array<DataType, matrix_size>, matrix_size> *matrix_{nullptr};
+  static DataType product_element(const square_matrix<DataType, matrix_size> &a,
+                                  const square_matrix<DataType, matrix_size> &b,
+                                  const int i, const int j);
 };
 
-template <class DataType, std::size_t size>
-square_matrix<DataType, size>::square_matrix(
-    std::initializer_list<std::initializer_list<DataType>> matrix) {
-  matrix_ = new DataType *[size];
-  for (int i = 0; i < size; ++i) {
-    matrix_[i] = new DataType[size];
-  }
-  int i = 0;
-  for (auto &row : matrix) {
-    int j = 0;
-    for (auto &data : row) {
-      matrix_[i][j] = data;
-      ++j;
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size>::square_matrix(
+    const square_matrix<DataType, matrix_size> &other)
+    : matrix_(new array<array<DataType, matrix_size>, matrix_size>{}) {
+  *matrix_ = *(other.matrix_);
+}
+
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size>::square_matrix(
+    square_matrix<DataType, matrix_size> &&other) {
+  matrix_ = other.matrix_;
+  other.matrix_ = nullptr;
+}
+
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size>::square_matrix(
+    const std::initializer_list<std::initializer_list<DataType>> il) {
+  if (il.size() == matrix_size and
+      algorithm::all_of(il.begin(), il.end(),
+                        [](const std::initializer_list<DataType> &x) {
+                          return x.size() == matrix_size;
+                        })) {
+    matrix_ = new array<array<DataType, matrix_size>, matrix_size>{};
+    std::size_t i = 0;
+    for (auto &row : il) {
+      std::size_t j = 0;
+      for (auto &data : row) {
+        (*matrix_)[i][j] = data;
+        ++j;
+      }
+      ++i;
     }
-    ++i;
+  } else {
+    throw std::length_error{
+        "invalid size of initializer list on matrix creation"};
   }
 }
 
-template <class DataType, std::size_t size>
-square_matrix<DataType, size>::square_matrix(
-    const square_matrix<DataType, size> &other) {
-  matrix_ = new DataType *[size];
-  for (int i = 0; i < size; ++i) {
-    matrix_[i] = new DataType[size];
-  }
-
-  for (int i = 0; i < size; ++i) {
-    for (int j = 0; j < size; ++j) {
-      matrix_[i][j] = other.matrix_[i][j];
-    }
+template <class DataType, std::size_t matrix_size>
+array<DataType, matrix_size> &
+square_matrix<DataType, matrix_size>::operator[](const std::size_t index) {
+  if (index < matrix_size) {
+    return (*matrix_)[index];
+  } else {
+    throw std::out_of_range{"trying to access an element out of bounds"};
   }
 }
 
-template <class DataType, std::size_t size>
-DataType square_matrix<DataType, size>::product_element(
-    const square_matrix<DataType, size> &a,
-    const square_matrix<DataType, size> &b, const int i, const int j) {
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size> &
+operator*=(square_matrix<DataType, matrix_size> lhs,
+           const square_matrix<DataType, matrix_size> &rhs) {
+  lhs *= rhs;
+  return lhs;
+}
+
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size> &
+square_matrix<DataType, matrix_size>::operator*=(
+    const square_matrix<DataType, matrix_size> &rhs) {
+  auto a = *this;
+  auto b = rhs;
+  for (int i = 0; i < matrix_size; ++i) {
+    for (int j = 0; j < matrix_size; ++j) {
+      this->matrix_[i][j] = square_matrix::product_element(a, b, i, j);
+    }
+  }
+  return *this;
+}
+
+template <class DataType, std::size_t matrix_size>
+DataType square_matrix<DataType, matrix_size>::product_element(
+    const square_matrix<DataType, matrix_size> &a,
+    const square_matrix<DataType, matrix_size> &b, const int i, const int j) {
   DataType element{};
-  for (std::size_t t = 0; t < size; ++t)
+  for (std::size_t t = 0; t < matrix_size; ++t)
     element += a[i][t] * b[t][j];
   return element;
 }
 
-template <class DataType, std::size_t size>
-void square_matrix<DataType, size>::print() const {
-  for (int row = 0; row < size; ++row) {
-    for (int column = 0; column < size; ++column)
-      std::cout << matrix_[row][column] << " ";
-    std::cout << std::endl;
-  }
-}
-
-template <class DataType, std::size_t size>
-square_matrix<DataType, size>::~square_matrix() {
-  for (std::size_t i; i < size; ++i) {
-    delete[] matrix_[i];
-  }
-  delete[] matrix_;
+template <class DataType, std::size_t matrix_size>
+square_matrix<DataType, matrix_size>::~square_matrix() {
+  delete matrix_;
+  matrix_ = nullptr;
 }
 } // namespace container
 } // namespace brocolio

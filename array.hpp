@@ -195,13 +195,13 @@ array<DataType, array_size>::operator=(array &&other) {
   other.c_array_ = nullptr;
 }
 
-template <class DataType, std::size_t array_size>
-array<DataType, array_size>::array(const DataType (&array)[array_size])
-    : c_array_(new DataType[array_size]) {
-  for (std::size_t i = 0; i < array_size; ++i) {
-    c_array_[i] = array[i];
-  }
-}
+// template <class DataType, std::size_t array_size>
+// array<DataType, array_size>::array(const DataType (&array)[array_size])
+//     : c_array_(new DataType[array_size]) {
+//   for (std::size_t i = 0; i < array_size; ++i) {
+//     c_array_[i] = array[i];
+//   }
+// }
 
 template <class DataType, std::size_t array_size>
 array<DataType, array_size>::array(const std::initializer_list<DataType> il)
