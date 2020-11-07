@@ -2,7 +2,7 @@
 #include "algorithm.hpp"
 #include "array.hpp"
 #include "ordered_pair.hpp"
-
+#include <immintrin.h>
 #include <iostream>
 namespace brocolio {
 namespace container {
@@ -27,56 +27,27 @@ public:
   };
 
   matrix &operator*=(const matrix &rhs); // ni
-  linear_block<N> &operator[](const std::size_t i);
+  matrix<float, M, M> &operator*=(const matrix<float, M, M> &rhs);
+  matrix<float, M, N> &operator+=(const matrix<float, M, N> &rhs);
+  DataType &operator()(const std::size_t i, const std::size_t j);
 
 private:
-  array<DataType, M * N> *matrix_data_{nullptr};
-  array<linear_block<N>, M> *rows_{nullptr};
-  array<linear_block<M>, N> *columns_{nullptr};
+  DataType *matrix_data_{nullptr};
+  static constexpr std::size_t size_{M * N};
 };
 
 template <class DataType, std::size_t M, std::size_t N>
-template <std::size_t Size>
-struct matrix<DataType, M, N>::linear_block {
-  array<DataType *, Size> block{};
-
-  linear_block() = default;
-  ~linear_block() = default;
-  linear_block(const linear_block &) = default;
-  linear_block(linear_block &&) = default;
-  DataType &operator[](const std::size_t index) { return *(block[index]); }
-};
-
-template <class DataType, std::size_t M, std::size_t N>
-matrix<DataType, M, N>::matrix()
-    : matrix_data_(new array<DataType, M * N>{}),
-      rows_(new array<linear_block<N>, M>{}),
-      columns_(new array<linear_block<M>, N>{}) {
-  std::size_t i{0};
-  while (i < M) {
-    std::size_t j{0};
-    while (j < N) {
-      (*rows_)[i].block[j] = &((*matrix_data_)[M * i + j]);
-      (*columns_)[j].block[i] = &((*matrix_data_)[N * j + i]);
-      ++j;
-    }
-    ++i;
-  }
-}
+matrix<DataType, M, N>::matrix() : matrix_data_(new DataType[size_]) {}
 
 template <class DataType, std::size_t M, std::size_t N>
 matrix<DataType, M, N>::matrix(const matrix<DataType, M, N> &other) : matrix() {
-  *matrix_data_ = *(other.matrix_data_);
+  // TODO
 }
 
 template <class DataType, std::size_t M, std::size_t N>
 matrix<DataType, M, N>::matrix(matrix<DataType, M, N> &&other) {
   matrix_data_ = other.matrix_data_;
-  rows_ = other.rows_;
-  columns_ = other.columns_;
   other.matrix_data_ = nullptr;
-  other.rows_ = nullptr;
-  other.columns_ = nullptr;
 }
 
 template <class DataType, std::size_t M, std::size_t N>
@@ -86,13 +57,13 @@ matrix<DataType, M, N>::matrix(
   if (il.size() == M and
       algorithm::all_of(il.begin(), il.end(),
                         [](const std::initializer_list<DataType> &x) {
-                          return x.size() == M;
+                          return x.size() == N;
                         })) {
-    std::size_t i = 0;
+    std::size_t i{0};
     for (const auto &row : il) {
-      std::size_t j = 0;
-      for (const auto &data : row) {
-        (*matrix_data_)[M * i + j] = data;
+      std::size_t j{0};
+      for (const DataType &data : row) {
+        matrix_data_[N * i + j] = data;
         ++j;
       }
       ++i;
@@ -104,11 +75,10 @@ matrix<DataType, M, N>::matrix(
 }
 
 template <class DataType, std::size_t M, std::size_t N>
-typename matrix<DataType, M, N>::template linear_block<N> &
-matrix<DataType, M, N>::operator[](const std::size_t i) {
-  return (*rows_)[i];
+DataType &matrix<DataType, M, N>::operator()(const std::size_t i,
+                                             const std::size_t j) {
+  return matrix_data_[N * i + j];
 }
-
 // template <class DataType, std::size_t M, std::size_t N>
 // matrix<DataType, M, N> &operator*=(matrix<DataType, M, N> lhs,
 //                                    const matrix<DataType, M, N> &rhs) {
@@ -117,23 +87,57 @@ matrix<DataType, M, N>::operator[](const std::size_t i) {
 // }
 
 // template <class DataType, std::size_t M, std::size_t N>
-// matrix<DataType, M, N> &
-// matrix<DataType, M, N>::operator*=(const matrix<DataType, M, N> &rhs) {
-//   auto a = *this;
-//   auto b = rhs;
-//   for (int i = 0; i < M; ++i) {
-//     for (int j = 0; j < M; ++j) {
-//       this->matrix_[i][j] = matrix::product_element(a, b, i, j);
-//     }
-//   }
-//   return *this;
+// matrix<DataType, M, N> &matrix<DataType, M, N>::operator*=(const matrix &rhs)
+// { static_assert(M == N, "matrix must be a square matrix"); return *this;
 // }
 
 template <class DataType, std::size_t M, std::size_t N>
+matrix<float, M, N> &
+matrix<DataType, M, N>::operator+=(const matrix<float, M, N> &rhs) {
+#if defined __linux__
+#if defined __AVX2__
+  constexpr std::size_t block_size{8};
+  // __m256i mask{_mm256_set1_epi32(-1)};
+#elif defined __AVX__
+  constexpr std::size_t block_size{4};
+#endif // __AVX2__
+
+  constexpr std::size_t partial_bound{size_ / block_size};
+  constexpr short remainder_bound{static_cast<short>(size_ % block_size)};
+  int arr_mask[block_size]{};
+  float *block_lhs_pointer{matrix_data_};
+  float *block_rhs_pointer{rhs.matrix_data_};
+
+#if defined __AVX2__
+  for (std::size_t i{0}; i < partial_bound; ++i) {
+    __m256 simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
+    __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
+    simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+    _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
+    block_lhs_pointer += 8;
+    block_rhs_pointer += 8;
+  }
+
+  if (remainder_bound != 0) {
+    for (short i{0}; i < remainder_bound; ++i) {
+      arr_mask[i] = -1;
+    }
+    __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u *>(arr_mask))};
+    __m256 simd_lhs{_mm256_maskload_ps(block_lhs_pointer, mask)};
+    __m256 simd_rhs{_mm256_maskload_ps(block_rhs_pointer, mask)};
+    simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+    _mm256_maskstore_ps(block_lhs_pointer, mask, simd_lhs);
+  }
+#elif defined __AVX__
+  // AVX code
+#endif // __AVX2__
+#endif // __linux__
+  return *this;
+}
+
+template <class DataType, std::size_t M, std::size_t N>
 matrix<DataType, M, N>::~matrix() {
-  delete matrix_data_;
-  delete rows_;
-  delete columns_;
+  delete[] matrix_data_;
 }
 } // namespace container
 } // namespace brocolio
