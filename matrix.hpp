@@ -1,6 +1,5 @@
 #pragma once
 #include "algorithm.hpp"
-#include "array.hpp"
 #include "ordered_pair.hpp"
 #include <immintrin.h>
 #include <iostream>
@@ -10,7 +9,7 @@ namespace container {
 // Matrix template prototype by brocolio de la CHUNSA
 template <class DataType, std::size_t M, std::size_t N> class matrix {
 public:
-  static_assert(M > 0 and N > 0, "matrix invalid size");
+  static_assert(M > 0 and N > 0, "invalid matrix size");
   class iterator;
   template <std::size_t Size> struct linear_block;
   matrix();
@@ -18,8 +17,8 @@ public:
   matrix(matrix &&);
   matrix(const std::initializer_list<std::initializer_list<DataType>> il);
   ~matrix();
-  matrix &operator=(const matrix &);          // ni
-  matrix &operator=(matrix &&);               // ni
+  matrix &operator=(const matrix &);
+  matrix &operator=(matrix &&);
   explicit operator matrix<DataType, N, M>(); // ni
 
   constexpr ordered_pair<std::size_t, std::size_t> size() const {
@@ -29,6 +28,7 @@ public:
   matrix &operator*=(const matrix &rhs); // ni
   matrix<float, M, M> &operator*=(const matrix<float, M, M> &rhs);
   matrix<float, M, N> &operator+=(const matrix<float, M, N> &rhs);
+  matrix<float, M, N> operator+(const matrix<float, M, N> &rhs) const;
   DataType &operator()(const std::size_t i, const std::size_t j);
 
 private:
@@ -40,8 +40,9 @@ template <class DataType, std::size_t M, std::size_t N>
 matrix<DataType, M, N>::matrix() : matrix_data_(new DataType[size_]) {}
 
 template <class DataType, std::size_t M, std::size_t N>
-matrix<DataType, M, N>::matrix(const matrix<DataType, M, N> &other) : matrix() {
-  // TODO
+matrix<DataType, M, N>::matrix(const matrix &other) : matrix() {
+  for (std::size_t i{0}; i < size_; ++i)
+    matrix_data_[i] = other.matrix_data_[i];
 }
 
 template <class DataType, std::size_t M, std::size_t N>
@@ -114,8 +115,8 @@ matrix<DataType, M, N>::operator+=(const matrix<float, M, N> &rhs) {
     __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
     simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
     _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
-    block_lhs_pointer += 8;
-    block_rhs_pointer += 8;
+    block_lhs_pointer += block_size;
+    block_rhs_pointer += block_size;
   }
 
   if (remainder_bound != 0) {
@@ -133,6 +134,15 @@ matrix<DataType, M, N>::operator+=(const matrix<float, M, N> &rhs) {
 #endif // __AVX2__
 #endif // __linux__
   return *this;
+}
+
+template <class DataType, std::size_t M, std::size_t N>
+matrix<float, M, N>
+matrix<DataType, M, N>::operator+(const matrix<float, M, N> &rhs) const {
+  matrix<float, M, N> result{};
+  result += rhs;
+  result += *this;
+  return result;
 }
 
 template <class DataType, std::size_t M, std::size_t N>
