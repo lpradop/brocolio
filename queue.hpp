@@ -4,7 +4,7 @@
 namespace brocolio {
 namespace container {
 
-template <class DataType> class priority-queue {
+template <class DataType> class queue {
 private:
   struct node;
   node *front_{nullptr};
@@ -12,10 +12,10 @@ private:
   std::size_t size_{0};
 
 public:
-  priority-queue() = default;
-  priority-queue(const queue &);
-  priority-queue(queue &&);
-  ~priority-queue();
+  queue() = default;
+  queue(const queue &);
+  queue(queue &&);
+  ~queue();
   void enqueue(const DataType data);
   DataType dequeue();
   DataType front() const;
@@ -23,7 +23,7 @@ public:
   std::size_t size() const;
 };
 
-template <class DataType> priority-queue<DataType>::~priority-queue() {
+template <class DataType> queue<DataType>::~queue() {
   node *tmp = front_;
   while (front_ != nullptr) {
     tmp = front_->next;
@@ -32,7 +32,7 @@ template <class DataType> priority-queue<DataType>::~priority-queue() {
   }
 }
 
-template <class DataType> void priority-queue<DataType>::enqueue(DataType data) {
+template <class DataType> void queue<DataType>::enqueue(DataType data) {
   if (front_ == nullptr) {
     front_ = new node{data, nullptr};
     back_ = front_;
@@ -44,7 +44,7 @@ template <class DataType> void priority-queue<DataType>::enqueue(DataType data) 
   ++size_;
 }
 
-template <class DataType> DataType priority-queue<DataType>::dequeue() {
+template <class DataType> DataType queue<DataType>::dequeue() {
   if (size_ != 0) {
     node *next = front_->next;
     DataType data = front_->data;
@@ -58,11 +58,11 @@ template <class DataType> DataType priority-queue<DataType>::dequeue() {
   }
 }
 
-template <class DataType> DataType priority-queue<DataType>::front() const {
+template <class DataType> DataType queue<DataType>::front() const {
   return front_->data;
 }
 
-template <class DataType> void priority-queue<DataType>::print() const {
+template <class DataType> void queue<DataType>::print() const {
   node *node = front_;
   while (node != nullptr) {
     std::cout << node->data << std::endl;
@@ -70,11 +70,11 @@ template <class DataType> void priority-queue<DataType>::print() const {
   }
 }
 
-template <class DataType> std::size_t priority-queue<DataType>::size() const {
+template <class DataType> std::size_t queue<DataType>::size() const {
   return size_;
 }
 
-template <class DataType> struct priority-queue<DataType>::node {
+template <class DataType> struct queue<DataType>::node {
   DataType data{};
   node *next{nullptr};
   node() = default;

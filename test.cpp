@@ -2,6 +2,7 @@
 // #include "simple_linked_list.hpp"
 // #include "array.hpp"
 #include "matrix.hpp"
+#include "binary_tree.hpp"
 // #include "priority_queue.hpp"
 #include <immintrin.h>
 #include <iostream>
@@ -12,9 +13,13 @@ int main() {
   matrix<float, 2, 3> n{{1, 0, 0}, {2, 1, 1}};
   matrix<float, 2, 3> c{m+n};
   // c=m+n;
-  for (int i{0}; i < 3; ++i) {
-    std::cout << c(1, i) << std::endl;
-  }
+  // for (int i{0}; i < 3; ++i) {
+    // std::cout << c(1, i) << std::endl;
+  // }
+  binary_tree<int,binary_tree_variation::STANDARD> s{};
+  std::cout << s.insert() << std::endl;
+  binary_tree<int,binary_tree_variation::ORDERED> o{};
+  std::cout << o.insert() << std::endl;
   // m(1, 0) = 0;
   // std::cout << m(1, 0) << std::endl;
   // matrix<int,2,2>cm{m};
