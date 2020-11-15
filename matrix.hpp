@@ -3,8 +3,7 @@
 #include "ordered_pair.hpp"
 #include <immintrin.h>
 #include <iostream>
-namespace brocolio {
-namespace container {
+namespace brocolio::container {
 
 // Matrix template prototype by brocolio de la CHUNSA
 template <class DataType, std::size_t M, std::size_t N> class matrix {
@@ -19,13 +18,13 @@ public:
   ~matrix();
   matrix &operator=(const matrix &);
   matrix &operator=(matrix &&);
-  explicit operator matrix<DataType, N, M>(); // ni
+  explicit operator matrix<DataType, N, M>(); // TODO
 
   constexpr ordered_pair<std::size_t, std::size_t> size() const {
     return ordered_pair<std::size_t, std::size_t>{M, N};
   };
 
-  matrix &operator*=(const matrix &rhs); // ni
+  matrix &operator*=(const matrix &rhs); // TODO
   matrix<float, M, M> &operator*=(const matrix<float, M, M> &rhs);
   matrix<float, M, N> &operator+=(const matrix<float, M, N> &rhs);
   matrix<float, M, N> operator+(const matrix<float, M, N> &rhs) const;
@@ -149,5 +148,4 @@ template <class DataType, std::size_t M, std::size_t N>
 matrix<DataType, M, N>::~matrix() {
   delete[] matrix_data_;
 }
-} // namespace container
-} // namespace brocolio
+} // namespace brocolio::container

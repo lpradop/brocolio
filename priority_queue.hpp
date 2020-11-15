@@ -3,8 +3,7 @@
 #include <functional>
 #include <iostream>
 
-namespace brocolio {
-namespace container {
+namespace brocolio::container {
 // TODO add move and copy assignment operators
 template <class DataType, class PriorityType> class priority_queue {
 public:
@@ -147,6 +146,4 @@ template <class DataType, class PriorityType>
 const std::size_t &priority_queue<DataType, PriorityType>::size() const {
   return size_;
 }
-
-} // namespace container
-} // namespace brocolio
+} // namespace brocolio::container

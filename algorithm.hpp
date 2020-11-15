@@ -1,6 +1,5 @@
 #pragma once
-namespace brocolio {
-namespace algorithm {
+namespace brocolio::algorithm {
 
 template <class Container, class Predicate, class... Args>
 typename Container::iterator search(const Container &container,
@@ -35,6 +34,4 @@ bool all_of(Iterator begin, Iterator end, UnaryPredicate unary_predicate) {
   }
   return true;
 }
-
-} // namespace algorithm
-} // namespace brocolio
+} // namespace brocolio::algorithm

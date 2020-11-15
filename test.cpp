@@ -1,25 +1,36 @@
 // #include "algorithm.hpp"
-// #include "simple_linked_list.hpp"
 // #include "array.hpp"
-#include "matrix.hpp"
-#include "binary_tree.hpp"
+// #include "matrix.hpp"
 // #include "priority_queue.hpp"
-#include <immintrin.h>
+// #include <immintrin.h>
+#include "binary_search_tree.hpp"
 #include <iostream>
+// #include "unordered_pair.hpp"
+
 using namespace brocolio::container;
 // using namespace brocolio::algorithm;
 int main() {
-  matrix<float, 2, 3> m{{2, 0, 0}, {2, 10, 10}};
-  matrix<float, 2, 3> n{{1, 0, 0}, {2, 1, 1}};
-  matrix<float, 2, 3> c{m+n};
+  binary_search_tree<int> a{10};
+  a.insert(15);
+  a.insert(16);
+  a.insert(11);
+  a.insert(1);
+  a.insert(2);
+  a.insert(20);
+  a.insert(21);
+  // std::cout << a.max_key() << std::endl;
+  std::cout << a.successor(1, transversal_method::post_order) << std::endl;
+  // unordered_pair<int, int> a{2, 5};
+  // unordered_pair<int, int> b{50, 2};
+  // std::cout << (a==b) << std::endl;
+
+  // matrix<float, 2, 3> m{{2, 0, 0}, {2, 10, 10}};
+  // matrix<float, 2, 3> n{{1, 0, 0}, {2, 1, 1}};
+  // matrix<float, 2, 3> c{m+n};
+  // matrix<int,4,5> k{};
   // c=m+n;
   // for (int i{0}; i < 3; ++i) {
-    // std::cout << c(1, i) << std::endl;
   // }
-  binary_tree<int,binary_tree_variation::STANDARD> s{};
-  std::cout << s.insert() << std::endl;
-  binary_tree<int,binary_tree_variation::ORDERED> o{};
-  std::cout << o.insert() << std::endl;
   // m(1, 0) = 0;
   // std::cout << m(1, 0) << std::endl;
   // matrix<int,2,2>cm{m};

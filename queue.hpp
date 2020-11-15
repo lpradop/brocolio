@@ -1,16 +1,8 @@
 #pragma once
-
 #include <iostream>
-namespace brocolio {
-namespace container {
+namespace brocolio::container {
 
 template <class DataType> class queue {
-private:
-  struct node;
-  node *front_{nullptr};
-  node *back_{nullptr};
-  std::size_t size_{0};
-
 public:
   queue() = default;
   queue(const queue &);
@@ -21,10 +13,16 @@ public:
   DataType front() const;
   void print() const;
   std::size_t size() const;
+
+private:
+  struct node;
+  node *front_{nullptr};
+  node *back_{nullptr};
+  std::size_t size_{0};
 };
 
 template <class DataType> queue<DataType>::~queue() {
-  node *tmp = front_;
+  node *tmp{front_};
   while (front_ != nullptr) {
     tmp = front_->next;
     delete front_;
@@ -46,8 +44,8 @@ template <class DataType> void queue<DataType>::enqueue(DataType data) {
 
 template <class DataType> DataType queue<DataType>::dequeue() {
   if (size_ != 0) {
-    node *next = front_->next;
-    DataType data = front_->data;
+    node *next{front_->next};
+    DataType data{front_->data};
     delete front_;
     front_ = next;
     --size_;
@@ -63,7 +61,7 @@ template <class DataType> DataType queue<DataType>::front() const {
 }
 
 template <class DataType> void queue<DataType>::print() const {
-  node *node = front_;
+  node *node{front_};
   while (node != nullptr) {
     std::cout << node->data << std::endl;
     node = node->next;
@@ -81,6 +79,4 @@ template <class DataType> struct queue<DataType>::node {
   node(DataType data, node *next) : data(data), next(next) {}
   ~node() = default;
 };
-
-} // namespace container
-} // namespace brocolio
+} // namespace brocolio::container

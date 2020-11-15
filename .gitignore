@@ -3,3 +3,6 @@
 compile_commands.json
 /build
 /.clangd
+/test/
+/.cache/
+/.clang-format
