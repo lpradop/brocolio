@@ -7,7 +7,7 @@ template <class DataType> class stack {
 public:
   stack() = default;
   stack(stack const&); // TODO
-  stack(stack &&); // TODO
+  stack(stack&&);      // TODO
   ~stack();
   void push(DataType const data);
   DataType pop();
