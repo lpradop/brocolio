@@ -1,0 +1,9 @@
+# -*- mode:yaml -*-
+BasedOnStyle: LLVM
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+Cpp11BracedListStyle: true
+Standard: c++17
+PointerBindsToType: true

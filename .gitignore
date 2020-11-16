@@ -1,8 +1,7 @@
 .ccls-cache/
 *.out
 compile_commands.json
-/build
-/.clangd
-/test/
-/.cache/
-/.clang-format
+build/
+.clangd
+test/
+.cache/
