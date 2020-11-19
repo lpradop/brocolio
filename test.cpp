@@ -4,22 +4,29 @@
 // #include "priority_queue.hpp"
 // #include <immintrin.h>
 #include "binary_search_tree.hpp"
+#include "stack.hpp"
 #include <iostream>
 // #include "unordered_pair.hpp"
 
 using namespace brocolio::container;
 // using namespace brocolio::algorithm;
 int main() {
+  // stack<int> s{};
+  // for (int i{0}; i < 4; ++i) {
+  //   s.push(i);
+  // }
+  // while (not s.empty()) {
+  //   std::cout << s.pop() << std::endl;
+  // }
   binary_search_tree<int> a{10};
   a.insert(15);
   a.insert(16);
   a.insert(11);
   a.insert(1);
-  a.insert(2);
+  a.insert(0);
   a.insert(20);
   a.insert(21);
-  // std::cout << a.max_key() << std::endl;
-  std::cout << a.successor(1, transversal_method::post_order) << std::endl;
+  a.print(transversal_method::post_order);
   // unordered_pair<int, int> a{2, 5};
   // unordered_pair<int, int> b{50, 2};
   // std::cout << (a==b) << std::endl;

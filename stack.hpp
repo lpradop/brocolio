@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 namespace brocolio::container {
 
@@ -13,6 +14,7 @@ public:
   DataType pop();
   DataType top() const;
   std::size_t size() const;
+  bool empty() const;
 
 private:
   struct node;
@@ -21,8 +23,8 @@ private:
 };
 
 template <class DataType> struct stack<DataType>::node {
-  DataType data{};
-  node* next{nullptr};
+  DataType const data{};
+  node const* next{nullptr};
 };
 
 template <class DataType> stack<DataType>::~stack() {
@@ -33,7 +35,7 @@ template <class DataType> stack<DataType>::~stack() {
   }
 }
 
-template <class DataType> void stack<DataType>::push(DataType data) {
+template <class DataType> void stack<DataType>::push(DataType const data) {
   top_ = (size_ == 0) ? new node{data, nullptr} : new node{data, top_};
   ++size_;
 }
@@ -61,6 +63,10 @@ template <class DataType> DataType stack<DataType>::top() const {
 
 template <class DataType> std::size_t stack<DataType>::size() const {
   return size_;
+}
+
+template <class DataType> bool stack<DataType>::empty() const {
+  return size_ == 0;
 }
 
 } // namespace brocolio::container
