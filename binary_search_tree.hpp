@@ -1,4 +1,5 @@
 #pragma once
+#include "stack.hpp"
 #include <functional>
 #include <iostream>
 #include <stdexcept>
@@ -19,39 +20,46 @@ public:
   ~binary_search_tree(); // TODO
 
   bool insert(KeyType const key);
-  bool remove(KeyType const key); // TODO
+  bool remove(KeyType const key);
   bool search(KeyType const key) const;
 
-  void print(transversal_method const method =
-                 transversal_method::in_order) const; // TODO
+  void
+  print(transversal_method const method = transversal_method::in_order) const;
 
-  KeyType max_key();
-  KeyType min_key();
+  KeyType max_key() const;
+  KeyType min_key() const;
 
-  KeyType
-  successor(KeyType const key,
-            transversal_method const method = transversal_method::in_order);
+  KeyType successor(KeyType const key, transversal_method const method =
+                                           transversal_method::in_order) const;
 
-  KeyType
-  predecessor(KeyType const key,
-              transversal_method const method = transversal_method::in_order);
+  KeyType predecessor(
+      KeyType const key,
+      transversal_method const method = transversal_method::in_order) const;
 
 private:
   struct node;
   node* root_{nullptr};
+  bool remove_flag{true};
   std::function<bool(KeyType const, KeyType const)> ordering_function_{
       [](KeyType const a, KeyType const b) { return a < b; }};
 
   node const* search_node(node const* const root, KeyType const key) const;
+  node* search_node(node* const root, KeyType const key);
 
-  node const* successor_node(node const* const some_node,
+  node const* successor_node(node const* const given_node,
                              transversal_method const method) const;
 
-  node const* predecessor_node(node const* const some_node,
+  node* successor_node(node* const given_node, transversal_method const method);
+
+  node const* predecessor_node(node const* const given_node,
                                transversal_method const method) const;
+
+  node* predecessor_node(node* const given_node,
+                         transversal_method const method);
 
   node const* min_key_node(node const* const root) const;
   node const* max_key_node(node const* const root) const;
+  bool remove_node(node* const given_node);
 };
 
 template <class KeyType> struct binary_search_tree<KeyType>::node {
@@ -111,15 +119,7 @@ bool binary_search_tree<KeyType>::remove(KeyType const key) {
   if (auto tmp{search_node(root_, key)}; tmp == nullptr) {
     return false;
   } else {
-    if (tmp->left == nullptr and tmp->right == nullptr) {
-      delete tmp;
-    } else if (tmp->left == nullptr xor tmp->right == nullptr) {
-      node* child{tmp->left != nullptr ? tmp->left : tmp->right};
-      tmp->key = child->key;
-      delete child;
-    } else {
-      // TODO
-    }
+    remove_node(tmp);
     return true;
   }
 }
@@ -150,25 +150,92 @@ binary_search_tree<KeyType>::search_node(node const* const root,
 }
 
 template <class KeyType>
-void binary_search_tree<KeyType>::print(transversal_method const method) const {
+typename binary_search_tree<KeyType>::node*
+binary_search_tree<KeyType>::search_node(node* const root, KeyType const key) {
+  return const_cast<node*>(std::as_const(*this).search_node(root, key));
+}
 
+template <class KeyType>
+void binary_search_tree<KeyType>::print(transversal_method const method) const {
+  if (root_ == nullptr) {
+    std::cout << "empty tree" << std::endl;
+    return;
+  }
+
+  stack<node const*> node_stack{};
+
+  switch (method) {
+  case transversal_method::pre_order:
+    node_stack.push(root_);
+    while (!node_stack.empty()) {
+      auto current_node{node_stack.top()};
+
+      std::cout << current_node->key << " ";
+      node_stack.pop();
+      if (current_node->right != nullptr) {
+        node_stack.push(current_node->right);
+      }
+      if (current_node->left != nullptr) {
+        node_stack.push(current_node->left);
+      }
+    }
+    break;
+
+  case transversal_method::in_order: {
+    node const* current_node{root_};
+    while (current_node != nullptr || !node_stack.empty()) {
+      while (current_node != nullptr) {
+        node_stack.push(current_node);
+        current_node = current_node->left;
+      }
+      current_node = node_stack.pop();
+      std::cout << current_node->key << " ";
+      current_node = current_node->right;
+    }
+    break;
+  }
+
+  case transversal_method::post_order: {
+    node const* previous_node{nullptr};
+    node const* current_node{root_};
+    while (current_node != nullptr || !node_stack.empty()) {
+      if (current_node != nullptr) {
+        node_stack.push(current_node);
+        current_node = current_node->left;
+      } else {
+        current_node = node_stack.top();
+        if (current_node->right == nullptr ||
+            current_node->right == previous_node) {
+          std::cout << current_node->key << " ";
+          node_stack.pop();
+          previous_node = current_node;
+          current_node = nullptr;
+        } else {
+          current_node = current_node->right;
+        }
+      }
+    }
+    break;
+  }
+  }
+  std::cout << std::endl;
 };
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
 binary_search_tree<KeyType>::successor_node(
-    node const* const some_node, transversal_method const method) const {
+    node const* const given_node, transversal_method const method) const {
   switch (method) {
   case transversal_method::pre_order:
-    if (some_node->left != nullptr) {
-      return some_node->left;
-    } else if (some_node->right != nullptr) {
-      return some_node->right;
+    if (given_node->left != nullptr) {
+      return given_node->left;
+    } else if (given_node->right != nullptr) {
+      return given_node->right;
     } else {
-      node const* tmp{some_node};
-      node const* ancestor{some_node->parent};
+      node const* tmp{given_node};
+      node const* ancestor{given_node->parent};
       while (ancestor != nullptr) {
-        if (ancestor->right != nullptr and ancestor->right != tmp) {
+        if (ancestor->right != nullptr && ancestor->right != tmp) {
           return ancestor->right;
         } else {
           tmp = tmp->parent;
@@ -177,22 +244,24 @@ binary_search_tree<KeyType>::successor_node(
       }
       return nullptr;
     }
+
   case transversal_method::in_order:
-    if (some_node->right != nullptr) {
-      return min_key_node(some_node->right);
+    if (given_node->right != nullptr) {
+      return min_key_node(given_node->right);
     } else {
-      node const* parent{some_node->parent};
-      node const* tmp{some_node};
-      while (parent != nullptr and tmp == parent->right) {
+      node const* parent{given_node->parent};
+      node const* tmp{given_node};
+      while (parent != nullptr && tmp == parent->right) {
         tmp = parent;
         parent = parent->parent;
       }
       return parent;
     }
+
   case transversal_method::post_order:
-    if (some_node == root_) {
+    if (given_node == root_) {
       return nullptr;
-    } else if (auto parent{some_node->parent}; some_node == parent->right) {
+    } else if (auto parent{given_node->parent}; given_node == parent->right) {
       return parent;
     } else if (parent->right != nullptr) {
       node const* tmp{min_key_node(parent->right)};
@@ -209,15 +278,23 @@ binary_search_tree<KeyType>::successor_node(
 }
 
 template <class KeyType>
+typename binary_search_tree<KeyType>::node*
+binary_search_tree<KeyType>::successor_node(node* const given_node,
+                                            transversal_method const method) {
+  return const_cast<node*>(
+      std::as_const(*this).successor_node(given_node, method));
+}
+
+template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
 binary_search_tree<KeyType>::predecessor_node(
-    node const* const some_node, transversal_method const method) const {
+    node const* const given_node, transversal_method const method) const {
   switch (method) {
   case transversal_method::pre_order:
-    if (some_node == root_) {
+    if (given_node == root_) {
       return nullptr;
-    } else if (auto parent{some_node->parent};
-               some_node == parent->left or parent->left == nullptr) {
+    } else if (auto parent{given_node->parent};
+               given_node == parent->left || parent->left == nullptr) {
       return parent;
     } else {
       node const* tmp{parent->left};
@@ -227,13 +304,13 @@ binary_search_tree<KeyType>::predecessor_node(
       return tmp;
     }
   case transversal_method::in_order:
-    if (some_node->left != nullptr) {
-      return max_key_node(some_node->left);
+    if (given_node->left != nullptr) {
+      return max_key_node(given_node->left);
     } else {
       node const* ancestor{root_};
       node const* tmp{nullptr};
-      while (ancestor->key != some_node->key) {
-        if (ordering_function_(ancestor->key, some_node->key)) {
+      while (ancestor->key != given_node->key) {
+        if (ordering_function_(ancestor->key, given_node->key)) {
           tmp = ancestor;
           ancestor = ancestor->right;
         } else {
@@ -243,15 +320,15 @@ binary_search_tree<KeyType>::predecessor_node(
       return tmp;
     }
   case transversal_method::post_order:
-    if (some_node->right != nullptr) {
-      return some_node->right;
-    } else if (some_node->left != nullptr) {
-      return some_node->left;
+    if (given_node->right != nullptr) {
+      return given_node->right;
+    } else if (given_node->left != nullptr) {
+      return given_node->left;
     } else {
-      node const* tmp{some_node};
-      node const* ancestor{some_node->parent};
+      node const* tmp{given_node};
+      node const* ancestor{given_node->parent};
       while (ancestor != nullptr) {
-        if (ancestor->left != nullptr and ancestor->left != tmp) {
+        if (ancestor->left != nullptr && ancestor->left != tmp) {
           return ancestor->left;
         } else {
           tmp = tmp->parent;
@@ -263,6 +340,14 @@ binary_search_tree<KeyType>::predecessor_node(
   default:
     return nullptr;
   }
+}
+
+template <class KeyType>
+typename binary_search_tree<KeyType>::node*
+binary_search_tree<KeyType>::predecessor_node(node* const given_node,
+                                              transversal_method const method) {
+  return const_cast<node*>(
+      std::as_const(*this).predecessor_node(given_node, method));
 }
 
 template <class KeyType>
@@ -293,18 +378,18 @@ binary_search_tree<KeyType>::max_key_node(node const* const root) const {
   }
 }
 
-template <class KeyType> KeyType binary_search_tree<KeyType>::min_key() {
+template <class KeyType> KeyType binary_search_tree<KeyType>::min_key() const {
   return min_key_node(root_)->key;
 }
 
-template <class KeyType> KeyType binary_search_tree<KeyType>::max_key() {
+template <class KeyType> KeyType binary_search_tree<KeyType>::max_key() const {
   return max_key_node(root_)->key;
 }
 
 template <class KeyType>
 KeyType
 binary_search_tree<KeyType>::successor(KeyType const key,
-                                       transversal_method const method) {
+                                       transversal_method const method) const {
   if (auto tmp{search_node(root_, key)}; tmp != nullptr) {
     auto tmp_successor{successor_node(tmp, method)};
     return tmp_successor != nullptr ? tmp_successor->key : key;
@@ -314,14 +399,38 @@ binary_search_tree<KeyType>::successor(KeyType const key,
 }
 
 template <class KeyType>
-KeyType
-binary_search_tree<KeyType>::predecessor(KeyType const key,
-                                         transversal_method const method) {
+KeyType binary_search_tree<KeyType>::predecessor(
+    KeyType const key, transversal_method const method) const {
   if (auto tmp{search_node(root_, key)}; tmp != nullptr) {
     auto tmp_predecessor{predecessor_node(tmp, method)};
     return tmp_predecessor != nullptr ? tmp_predecessor->key : key;
   } else {
     throw std::domain_error{"key not found"};
+  }
+}
+
+template <class KeyType>
+bool binary_search_tree<KeyType>::remove_node(node* const given_node) {
+  if (given_node != nullptr) {
+    if (given_node->right == nullptr && given_node->left == nullptr) {
+      delete given_node;
+    } else if (given_node->right != nullptr ^ given_node->left != nullptr) {
+      node* child{given_node->left != nullptr ? given_node->left
+                                              : given_node->right};
+      given_node->key = child->key;
+      delete child;
+    } else {
+      node* tmp{
+          remove_flag
+              ? successor_node(given_node, transversal_method::in_order)
+              : predecessor_node(given_node, transversal_method::in_order)};
+      given_node->key = tmp->key;
+      remove_node(tmp);
+      remove_flag = !remove_flag;
+    }
+    return true;
+  } else {
+    return false;
   }
 }
 
