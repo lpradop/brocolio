@@ -4,6 +4,7 @@
 // #include "priority_queue.hpp"
 // #include <immintrin.h>
 #include "binary_search_tree.hpp"
+#include "graph.hpp"
 #include "stack.hpp"
 #include <iostream>
 // #include "unordered_pair.hpp"
@@ -18,15 +19,30 @@ int main() {
   // while (not s.empty()) {
   //   std::cout << s.pop() << std::endl;
   // }
-  binary_search_tree<int> a{10};
-  a.insert(15);
-  a.insert(16);
-  a.insert(11);
-  a.insert(1);
-  a.insert(0);
-  a.insert(20);
-  a.insert(21);
-  a.print(transversal_method::post_order);
+  graph<int> g{};
+  g.insert_vertex(1);
+  g.insert_vertex(2);
+  g.insert_vertex(3);
+  g.insert_edge(1, 2);
+  g.insert_edge(3, 2);
+
+  // std::cout <<  << std::endl;
+  // std::cout << g.insert_edge(2, 1) << std::endl;
+
+  auto list{g.adyacent_vertices(2)};
+  list.print();
+  std::cout << list.empty() << std::endl;
+  std::cout << list.size() << std::endl;
+  g.generate_dot_file("out");
+  // binary_search_tree<int> a{10};
+  // a.insert(15);
+  // a.insert(16);
+  // a.insert(11);
+  // a.insert(1);
+  // a.insert(0);
+  // a.insert(20);
+  // a.insert(21);
+  // a.print(transversal_method::post_order);
   // unordered_pair<int, int> a{2, 5};
   // unordered_pair<int, int> b{50, 2};
   // std::cout << (a==b) << std::endl;

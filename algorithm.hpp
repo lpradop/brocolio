@@ -1,10 +1,10 @@
 #pragma once
 namespace brocolio::algorithm {
-
+// generic function by Brocolio de la CHUNSA
 template <class Container, class Predicate, class... Args>
-typename Container::iterator search(const Container &container,
-                                    const Predicate predicate,
-                                    const Args... args) {
+typename Container::iterator search(Container const& container,
+                                    Predicate const predicate,
+                                    Args const... args) {
   for (auto it = container.begin(); it != container.end(); ++it) {
     if (predicate(*it, args...)) {
       return it;
@@ -15,8 +15,8 @@ typename Container::iterator search(const Container &container,
 
 template <class Container, class Predicate, class... Args>
 typename Container::iterator
-search(const Container &container, typename Container::iterator iterator,
-       const Predicate predicate, const Args... args) {
+search(Container const& container, typename Container::iterator iterator,
+       Predicate const predicate, Args const... args) {
   for (; iterator != container.end(); ++iterator) {
     if (predicate(*iterator, args...)) {
       return iterator;

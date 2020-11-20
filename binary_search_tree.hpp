@@ -10,18 +10,27 @@ enum class transversal_method { pre_order, in_order, post_order };
 
 template <class KeyType> class binary_search_tree {
 public:
+  class iterator;
   binary_search_tree() = default;
   binary_search_tree(binary_search_tree const&); // TODO
   binary_search_tree(binary_search_tree&&);      // TODO
   binary_search_tree(KeyType const root_key);
   binary_search_tree(
       KeyType const root_key,
-      std::function<bool(KeyType const, KeyType const)> ordering_function);
+      std::function<bool(KeyType const&, KeyType const&)> ordering_function);
+
+  binary_search_tree(
+      std::function<bool(KeyType const&, KeyType const&)> ordering_function);
+
   ~binary_search_tree(); // TODO
 
+  iterator begin() const { return iterator{this, root_}; }
+  iterator end() const { return iterator{this, nullptr}; }
   bool insert(KeyType const key);
   bool remove(KeyType const key);
   bool search(KeyType const key) const;
+  std::size_t size() const { return size_; };
+  bool empty() const { return size_ == 0; };
 
   void
   print(transversal_method const method = transversal_method::in_order) const;
@@ -40,8 +49,10 @@ private:
   struct node;
   node* root_{nullptr};
   bool remove_flag{true};
-  std::function<bool(KeyType const, KeyType const)> ordering_function_{
+  std::function<bool(KeyType const&, KeyType const&)> ordering_function_{
       [](KeyType const a, KeyType const b) { return a < b; }};
+
+  std::size_t size_{0};
 
   node const* search_node(node const* const root, KeyType const key) const;
   node* search_node(node* const root, KeyType const key);
@@ -69,6 +80,38 @@ template <class KeyType> struct binary_search_tree<KeyType>::node {
   node* parent{nullptr};
 };
 
+template <class KeyType> class binary_search_tree<KeyType>::iterator {
+public:
+  iterator() = default;
+  iterator(iterator const&) = default;
+  iterator(iterator&&) = default;
+  iterator(binary_search_tree const* const tree, node const* it_node)
+      : tree_(tree), it_node_(it_node) {}
+  ~iterator() = default;
+  iterator& operator++() {
+    it_node_ = tree_->successor_node(it_node_, transversal_method::in_order);
+    return *this;
+  };
+  // iterator operator++(int) {
+  //   if (it_node_ != nullptr) {
+  //     iterator tmp{*this};
+  //     operator++();
+  //     return tmp;
+  //   } else {
+  //     return *this;
+  //   }
+  // }
+  KeyType const& operator*() const { return it_node_->key; }
+  bool operator==(iterator const& other) const {
+    return (this->it_node_ == other.it_node_);
+  }
+  bool operator!=(iterator const& other) const { return !(*this == other); }
+
+private:
+  node const* it_node_{nullptr};
+  binary_search_tree const* const tree_{nullptr};
+};
+
 template <class KeyType>
 binary_search_tree<KeyType>::binary_search_tree(KeyType const root_key)
     : root_(new node{root_key, nullptr, nullptr, nullptr}) {}
@@ -76,10 +119,15 @@ binary_search_tree<KeyType>::binary_search_tree(KeyType const root_key)
 template <class KeyType>
 binary_search_tree<KeyType>::binary_search_tree(
     KeyType const root_key,
-    std::function<bool(KeyType const, KeyType const)> ordering_function)
+    std::function<bool(KeyType const&, KeyType const&)> ordering_function)
     : binary_search_tree(root_key) {
   ordering_function_ = ordering_function;
 }
+
+template <class KeyType>
+binary_search_tree<KeyType>::binary_search_tree(
+    std::function<bool(KeyType const&, KeyType const&)> ordering_function)
+    : ordering_function_(ordering_function) {}
 
 template <class KeyType> binary_search_tree<KeyType>::~binary_search_tree() {
   // TODO
@@ -89,6 +137,7 @@ template <class KeyType>
 bool binary_search_tree<KeyType>::insert(KeyType const key) {
   if (root_ == nullptr) {
     root_ = new node{key, nullptr, nullptr, nullptr};
+    ++size_;
     return true;
   } else {
     node* tmp{root_};
@@ -96,6 +145,7 @@ bool binary_search_tree<KeyType>::insert(KeyType const key) {
       if (ordering_function_(key, tmp->key)) {
         if (tmp->left == nullptr) {
           tmp->left = new node{key, nullptr, nullptr, tmp};
+          ++size_;
           return true;
         } else {
           tmp = tmp->left;
@@ -103,6 +153,7 @@ bool binary_search_tree<KeyType>::insert(KeyType const key) {
       } else if (ordering_function_(tmp->key, key)) {
         if (tmp->right == nullptr) {
           tmp->right = new node{key, nullptr, nullptr, tmp};
+          ++size_;
           return true;
         } else {
           tmp = tmp->right;
@@ -120,6 +171,7 @@ bool binary_search_tree<KeyType>::remove(KeyType const key) {
     return false;
   } else {
     remove_node(tmp);
+    --size_;
     return true;
   }
 }

@@ -2,13 +2,13 @@
 #include <iostream>
 
 namespace brocolio::container {
-
+// TODO check const correctness
 template <class DataType> class linked_list {
 public:
   class iterator;
   linked_list() = default;
   linked_list(linked_list const&);
-  linked_list(linked_list&&); // TODO
+  linked_list(linked_list&&);
   ~linked_list();
   void insert(DataType const data, std::size_t const position = 0);
   void remove(std::size_t const position = 0);
@@ -17,6 +17,7 @@ public:
   std::size_t size() const;
   void clear();
   void print() const;
+  bool empty() const { return size_ == 0; }
 
 private:
   struct node;
@@ -32,17 +33,16 @@ template <class DataType> struct linked_list<DataType>::node {
 template <class DataType> class linked_list<DataType>::iterator {
 public:
   iterator() = default;
-  iterator(iterator const&) = default;
-  iterator(node* node) : node_(node){};
+  iterator(node* it_node) : it_node_(it_node){};
   ~iterator() = default;
   iterator& operator++() {
-    if (node_ != nullptr) {
-      node_ = node_->next;
+    if (it_node_ != nullptr) {
+      it_node_ = it_node_->next;
     }
     return *this;
   };
   iterator operator++(int) {
-    if (node_ != nullptr) {
+    if (it_node_ != nullptr) {
       iterator tmp{*this};
       operator++();
       return tmp;
@@ -50,14 +50,14 @@ public:
       return *this;
     }
   }
-  DataType& operator*() const { return (this->node_)->data; }
+  DataType& operator*() const { return (this->it_node_)->data; }
   bool operator==(iterator const& other) const {
-    return (this->node_ == other.node_);
+    return (this->it_node_ == other.it_node_);
   }
-  bool operator!=( iterator const& other) const { return not(*this == other); }
+  bool operator!=(iterator const& other) const { return not(*this == other); }
 
 private:
-  node* node_{nullptr};
+  node* it_node_{nullptr};
 };
 
 template <class DataType>
@@ -65,18 +65,18 @@ void linked_list<DataType>::insert(DataType const data,
                                    std::size_t const position) {
   if (position < size_) {
     if (position == 0) {
-      head_ = new node(data, head_);
+      head_ = new node{data, head_};
     } else {
       node* tmp{head_};
 
       for (std::size_t i{0}; i < position - 1; ++i) {
         tmp = tmp->next;
       }
-      tmp->next = new node(data, tmp->next);
+      tmp->next = new node{data, tmp->next};
     }
   } else {
     if (size_ == 0) {
-      head_ = new node(data, nullptr);
+      head_ = new node{data, nullptr};
     } else {
       node* tmp{head_};
       while (tmp != nullptr) {
@@ -84,7 +84,7 @@ void linked_list<DataType>::insert(DataType const data,
           break;
         tmp = tmp->next;
       }
-      tmp->next = new node(data, nullptr);
+      tmp->next = new node{data, nullptr};
     }
   }
   ++size_;
@@ -129,6 +129,12 @@ linked_list<DataType>::linked_list(linked_list const& other)
   }
 }
 
+template <class DataType>
+linked_list<DataType>::linked_list(linked_list&& other)
+    : head_(other.head_), size_(other.size_) {
+  other.head_ = nullptr;
+}
+
 template <class DataType> linked_list<DataType>::~linked_list() { clear(); }
 
 template <class DataType> std::size_t linked_list<DataType>::size() const {
@@ -156,7 +162,7 @@ typename linked_list<DataType>::iterator linked_list<DataType>::end() const {
 }
 
 template <class DataType> void linked_list<DataType>::print() const {
-  node* node{head_};
+  node const* node{head_};
   while (node != nullptr) {
     std::cout << node->data << " -> ";
     node = node->next;
