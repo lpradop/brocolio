@@ -3,6 +3,7 @@
 #include "ordered_pair.hpp"
 #include <immintrin.h>
 #include <iostream>
+#include <stdexcept>
 namespace brocolio::container {
 
 // Dynamic_Matrix template prototype by brocolio de la CHUNSA
@@ -18,7 +19,8 @@ public:
 
   dynamic_matrix& operator=(dynamic_matrix const&);
   dynamic_matrix& operator=(dynamic_matrix&&);
-  dynamic_matrix& operator*=(dynamic_matrix const& rhs); // TODO
+  dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs); // TODO
+  dynamic_matrix<float> operator+(dynamic_matrix<float> const& rhs) const;
   DataType& operator()(std::size_t const i, std::size_t const j);
 
   ordered_pair<std::size_t, std::size_t> size() const { return size_; }
@@ -79,7 +81,15 @@ dynamic_matrix<DataType>::dynamic_matrix(
 
 template <class DataType>
 dynamic_matrix<DataType>&
-dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {}
+dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
+  if (matrix_data_size_ == other.matrix_data_size_) {
+    for (std::size_t i{0}; i < matrix_data_size_; ++i)
+      matrix_data_[i] = other.matrix_data_[i];
+    return *this;
+  } else {
+    throw std::length_error{"cannot copy the given matrix"};
+  }
+}
 
 template <class DataType>
 dynamic_matrix<DataType>&
@@ -87,7 +97,11 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) {
   size_ = other.size_;
   matrix_data_size_ = other.matrix_data_size_;
   matrix_data_ = other.matrix_data_;
-  other.matrix_data_ == nullptr;
+  other.size_.x = 0;
+  other.size_.y = 0;
+  other.matrix_data_size_ = 0;
+  other.matrix_data_ = nullptr;
+  return *this;
 }
 
 template <class DataType>
@@ -95,71 +109,66 @@ DataType& dynamic_matrix<DataType>::operator()(std::size_t const i,
                                                std::size_t const j) {
   return matrix_data_[size_.x * i + j];
 }
-// template <class DataType>
-// dynamic_matrix<DataType> &operator*=(dynamic_matrix<DataType> lhs,
-//                                    const dynamic_matrix<DataType> &rhs) {
-//   lhs *= rhs;
-//   return lhs;
-// }
 
-// template <class DataType>
-// dynamic_matrix<DataType> &dynamic_matrix<DataType>::operator*=(const
-// dynamic_matrix &rhs) { static_assert(M == N, "dynamic_matrix must be a square
-// dynamic_matrix"); return *this;
-// }
+template <class DataType>
+dynamic_matrix<float>&
+dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
 
-// template <class DataType>
-// dynamic_matrix<float>&
-// dynamic_matrix<DataType>::operator+=(const dynamic_matrix<float>& rhs) {
-// #if defined __linux__
-// #if defined __AVX2__
-//   constexpr std::size_t block_size{8};
-//   // __m256i mask{_mm256_set1_epi32(-1)};
-// #elif defined __AVX__
-//   constexpr std::size_t block_size{4};
-// #endif // __AVX2__
+  if (size_ == rhs.size_) {
+#if defined __linux__
+#if defined __AVX2__
+    std::size_t constexpr block_size{8};
+    // __m256i mask{_mm256_set1_epi32(-1)};
+#elif defined __AVX__
+    std::size_t constexpr block_size{4};
+#endif // __AVX2__
 
-//   constexpr std::size_t partial_bound{size_ / block_size};
-//   constexpr short remainder_bound{static_cast<short>(size_ % block_size)};
-//   int arr_mask[block_size]{};
-//   float* block_lhs_pointer{matrix_data_};
-//   float* block_rhs_pointer{rhs.matrix_data_};
+    std::size_t const partial_bound{matrix_data_size_ / block_size};
+    short const remainder_bound{
+        static_cast<short>(matrix_data_size_ % block_size)};
+    int arr_mask[block_size]{};
+    float* block_lhs_pointer{matrix_data_};
+    float* block_rhs_pointer{rhs.matrix_data_};
 
-// #if defined __AVX2__
-//   for (std::size_t i{0}; i < partial_bound; ++i) {
-//     __m256 simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
-//     __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
-//     simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
-//     _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
-//     block_lhs_pointer += block_size;
-//     block_rhs_pointer += block_size;
-//   }
+#if defined __AVX2__
+    for (std::size_t i{0}; i < partial_bound; ++i) {
+      __m256 simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
+      __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
+      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+      _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
+      block_lhs_pointer += block_size;
+      block_rhs_pointer += block_size;
+    }
 
-//   if (remainder_bound != 0) {
-//     for (short i{0}; i < remainder_bound; ++i) {
-//       arr_mask[i] = -1;
-//     }
-//     __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
-//     __m256 simd_lhs{_mm256_maskload_ps(block_lhs_pointer, mask)};
-//     __m256 simd_rhs{_mm256_maskload_ps(block_rhs_pointer, mask)};
-//     simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
-//     _mm256_maskstore_ps(block_lhs_pointer, mask, simd_lhs);
-//   }
-// #elif defined __AVX__
-//   // AVX code
-// #endif // __AVX2__
-// #endif // __linux__
-//   return *this;
-// }
+    if (remainder_bound != 0) {
+      for (short i{0}; i < remainder_bound; ++i) {
+        arr_mask[i] = -1;
+      }
+      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+      __m256 simd_lhs{_mm256_maskload_ps(block_lhs_pointer, mask)};
+      __m256 simd_rhs{_mm256_maskload_ps(block_rhs_pointer, mask)};
+      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+      _mm256_maskstore_ps(block_lhs_pointer, mask, simd_lhs);
+    }
+#elif defined __AVX__
+    // AVX code
+#endif // __AVX2__
+#endif // __linux__
 
-// template <class DataType>
-// dynamic_matrix<float>
-// dynamic_matrix<DataType>::operator+(const dynamic_matrix<float>& rhs) const {
-//   dynamic_matrix<float> result{};
-//   result += rhs;
-//   result += *this;
-//   return result;
-// }
+  } else {
+    throw std::length_error{"gaaa"};
+  }
+  return *this;
+}
+
+template <class DataType> // FIXME
+dynamic_matrix<float>
+dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
+  dynamic_matrix<float> result{};
+  result += rhs;
+  result += *this;
+  return result;
+}
 
 template <class DataType> dynamic_matrix<DataType>::~dynamic_matrix() {
   delete[] matrix_data_;

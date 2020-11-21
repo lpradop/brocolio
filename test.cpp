@@ -13,10 +13,13 @@
 using namespace brocolio::container;
 // using namespace brocolio::algorithm;
 int main() {
-  dynamic_matrix<int> m{{1,4}};
-  dynamic_matrix<int> n{m};
-  n(0,0)=0;
+  dynamic_matrix<float> m{{10,4}};
+  dynamic_matrix<float> n{m};
+  n=std::move(m);
+  n+=n;
+  n+=n;
   std::cout << m.size().y << std::endl;
-  std::cout << m(0,0) << std::endl;
+  std::cout << n(0,0) << std::endl;
+  std::cout << n(0,1) << std::endl;
   
 }
