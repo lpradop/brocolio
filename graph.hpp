@@ -2,10 +2,10 @@
 #include "algorithm.hpp"
 #include "binary_search_tree.hpp"
 #include "linked_list.hpp"
+#include "matrix.hpp"
 #include "unordered_pair.hpp"
 #include <fstream>
 #include <iostream>
-#include <pstl/glue_algorithm_defs.h>
 
 namespace brocolio::container {
 // graph class by Brocolio de CHUNSA (undirected and simple for now)
@@ -18,8 +18,9 @@ public:
   bool insert_vertex(DataType const vertex);
   bool insert_edge(DataType const v1, DataType const v2);
   bool empty() const { return vertices_.empty(); }
-  void generate_dot_file(std::string const file_name) const; // REVIEW
+  void generate_dot_file(std::string const file_name) const;            // HACK
   linked_list<DataType> adyacent_vertices(DataType const vertex) const; // HACK
+  auto foo() const;
 
 private:
   binary_search_tree<DataType> vertices_{};
@@ -92,5 +93,7 @@ graph<DataType>::adyacent_vertices(DataType const vertex) const {
   }
   return std::move(found_vertices);
 }
+
+
 
 } // namespace brocolio::container
