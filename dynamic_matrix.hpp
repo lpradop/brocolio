@@ -19,7 +19,7 @@ public:
 
   dynamic_matrix& operator=(dynamic_matrix const&);
   dynamic_matrix& operator=(dynamic_matrix&&);
-  dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs); // TODO
+  dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
   dynamic_matrix<float> operator+(dynamic_matrix<float> const& rhs) const;
   DataType& operator()(std::size_t const i, std::size_t const j);
 
@@ -161,13 +161,17 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
   return *this;
 }
 
-template <class DataType> // FIXME
+template <class DataType> // REVIEW
 dynamic_matrix<float>
 dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
-  dynamic_matrix<float> result{};
-  result += rhs;
-  result += *this;
-  return result;
+  if (size_ == rhs.size_) {
+    dynamic_matrix<float> result{};
+    result += rhs;
+    result += *this;
+    return result;
+  } else {
+    throw std::length_error{"gaaa"};
+  }
 }
 
 template <class DataType> dynamic_matrix<DataType>::~dynamic_matrix() {

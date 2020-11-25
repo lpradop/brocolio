@@ -1,8 +1,8 @@
 #pragma once
 #include "algorithm.hpp"
 #include "binary_search_tree.hpp"
+#include "dynamic_matrix.hpp"
 #include "linked_list.hpp"
-#include "matrix.hpp"
 #include "unordered_pair.hpp"
 #include <fstream>
 #include <iostream>
@@ -20,7 +20,7 @@ public:
   bool empty() const { return vertices_.empty(); }
   void generate_dot_file(std::string const file_name) const;            // HACK
   linked_list<DataType> adyacent_vertices(DataType const vertex) const; // HACK
-  auto foo() const;
+  dynamic_matrix<DataType> adyacency_matrix() const;
 
 private:
   binary_search_tree<DataType> vertices_{};
@@ -77,7 +77,7 @@ graph<DataType>::adyacent_vertices(DataType const vertex) const {
   auto it{algorithm::search(
       edges_,
       [](unordered_pair<DataType, DataType> x, DataType const vertex) {
-        return x.x == vertex or x.y == vertex;
+        return x.x == vertex || x.y == vertex;
       },
       vertex)};
 
@@ -87,13 +87,17 @@ graph<DataType>::adyacent_vertices(DataType const vertex) const {
     it = algorithm::search(
         edges_, ++it,
         [](unordered_pair<DataType, DataType> x, DataType const vertex) {
-          return x.x == vertex or x.y == vertex;
+          return x.x == vertex || x.y == vertex;
         },
         vertex);
   }
   return std::move(found_vertices);
 }
 
-
+template <class DataType>
+dynamic_matrix<DataType> graph<DataType>::adyacency_matrix() const {
+  dynamic_matrix<DataType> tmp{vertices_.size(), vertices_.size()};
+  // TODO
+}
 
 } // namespace brocolio::container

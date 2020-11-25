@@ -1,20 +1,18 @@
 #pragma once
 #include "stack.hpp"
+#include "typenames.hpp"
 #include <functional>
 #include <iostream>
 #include <stdexcept>
-
 namespace brocolio::container {
 // binary search tree by Brocolio de la CHUNSA
-enum class transversal_method { pre_order, in_order, post_order };
-
 template <class KeyType> class binary_search_tree {
 public:
   class iterator;
   binary_search_tree() = default;
   binary_search_tree(binary_search_tree const&); // TODO
   binary_search_tree(binary_search_tree&&);      // TODO
-  binary_search_tree(KeyType const root_key);
+  binary_search_tree(KeyType const root_key);    // REVIEW
   binary_search_tree(
       KeyType const root_key,
       std::function<bool(KeyType const&, KeyType const&)> ordering_function);

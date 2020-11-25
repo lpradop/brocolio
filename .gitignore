@@ -2,6 +2,5 @@
 *.out
 compile_commands.json
 build/
-.clangd
-test/
+.clangd/
 .cache/

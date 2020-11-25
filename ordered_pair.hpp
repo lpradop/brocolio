@@ -6,11 +6,11 @@ namespace container {
 template <class T, class S> struct ordered_pair {
   T x{};
   S y{};
-  bool operator==(const ordered_pair<T, S> &other) {
+  bool operator==(ordered_pair<T, S> const& other) const {
     return (x == other.x and y == other.y);
   };
 
-  bool operator!=(const ordered_pair<T, S> other) {
+  bool operator!=(ordered_pair<T, S> const other) const {
     return !(*this == other);
   }
 };
