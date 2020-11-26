@@ -8,6 +8,7 @@
 namespace brocolio::container {
 
 // Dynamic_Matrix template prototype by brocolio de la CHUNSA
+// TODO be able to chose de size type of the matrix
 template <concepts::numeric DataType> class dynamic_matrix {
 public:
   dynamic_matrix() = default;
@@ -22,6 +23,8 @@ public:
   dynamic_matrix& operator=(dynamic_matrix&&);
   dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
   dynamic_matrix<float> operator+(dynamic_matrix<float> const& rhs) const;
+  dynamic_matrix<int>& operator+=(dynamic_matrix<int> const& rhs);
+  dynamic_matrix<int> operator+(dynamic_matrix<int> const& rhs) const;
   DataType& operator()(std::size_t const i, std::size_t const j);
 
   ordered_pair<std::size_t, std::size_t> size() const { return size_; }
@@ -162,16 +165,98 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
   return *this;
 }
 
-template <concepts::numeric DataType> // REVIEW
+template <concepts::numeric DataType>
+dynamic_matrix<int>&
+dynamic_matrix<DataType>::operator+=(dynamic_matrix<int> const& rhs) {
+
+  if (size_ == rhs.size_) {
+#if defined __linux__
+#if defined __AVX2__
+    std::size_t constexpr block_size{8};
+    // __m256i mask{_mm256_set1_epi32(-1)};
+#elif defined __AVX__
+    std::size_t constexpr block_size{4};
+#endif // __AVX2__
+
+    std::size_t const partial_bound{matrix_data_size_ / block_size};
+    short const remainder_bound{
+        static_cast<short>(matrix_data_size_ % block_size)};
+    int arr_mask[block_size]{};
+    int* block_lhs_pointer{matrix_data_};
+    int* block_rhs_pointer{rhs.matrix_data_};
+
+#if defined __AVX2__
+    // block addition
+    for (std::size_t i{0}; i < partial_bound; ++i) {
+      // registers creation
+      __m256i simd_lhs{
+          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(block_lhs_pointer))};
+      __m256i simd_rhs{
+          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(block_rhs_pointer))};
+
+      // addition of registers
+      simd_lhs = _mm256_add_epi32(simd_lhs, simd_rhs);
+
+      // store partial result on lhs
+      _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(block_rhs_pointer),
+                          simd_lhs);
+
+      block_lhs_pointer += block_size;
+      block_rhs_pointer += block_size;
+    }
+
+    // remainder elements addition
+    if (remainder_bound != 0) {
+      // setting mask
+      for (short i{0}; i < remainder_bound; ++i) {
+        arr_mask[i] = -1;
+      }
+      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+      // registers creation
+      __m256i simd_lhs{_mm256_maskload_epi32(block_lhs_pointer, mask)};
+      __m256i simd_rhs{_mm256_maskload_epi32(block_rhs_pointer, mask)};
+
+      // addition of registers
+      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+
+      // store remainder result on lhs
+      _mm256_maskstore_epi32(block_lhs_pointer, mask, simd_lhs);
+    }
+
+#elif defined __AVX__
+    // AVX code
+#endif // __AVX2__
+#endif // __linux__
+    return *this;
+
+  } else {
+    throw std::length_error{"matrices cannot be added"};
+  }
+}
+
+template <concepts::numeric DataType>
 dynamic_matrix<float>
 dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
   if (size_ == rhs.size_) {
-    dynamic_matrix<float> result{};
+    dynamic_matrix<float> result{this->size_.x, this->size_.y};
     result += rhs;
     result += *this;
     return result;
   } else {
-    throw std::length_error{"gaaa"};
+    throw std::length_error{"matrices cannot be added, on a+b call"};
+  }
+}
+
+template <concepts::numeric DataType>
+dynamic_matrix<int>
+dynamic_matrix<DataType>::operator+(dynamic_matrix<int> const& rhs) const {
+  if (size_ == rhs.size_) {
+    dynamic_matrix<int> result{this->size_.x, this->size_.y};
+    result += rhs;
+    result += *this;
+    return result;
+  } else {
+    throw std::length_error{"matrices cannot be added, on a+b call"};
   }
 }
 
