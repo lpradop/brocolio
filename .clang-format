@@ -5,5 +5,5 @@ Language: Cpp
 DerivePointerAlignment: false
 PointerAlignment: Left
 Cpp11BracedListStyle: true
-Standard: c++17
+Standard: c++20
 PointerBindsToType: true

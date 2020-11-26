@@ -1,0 +1,4 @@
+* BROCOLIO library (c++20)
+** Requirements
+- clang 11
+- cmake 3.18

@@ -18,15 +18,23 @@ public:
   bool insert_vertex(DataType const vertex);
   bool insert_edge(DataType const v1, DataType const v2);
   bool empty() const { return vertices_.empty(); }
-  void generate_dot_file(std::string const file_name) const;            // HACK
-  linked_list<DataType> adyacent_vertices(DataType const vertex) const; // HACK
-  dynamic_matrix<DataType> adyacency_matrix() const;
+  void generate_dot_file(std::string const file_name) const; // HACK
+
+  linked_list<simple_node<DataType>>
+  adyacent_vertices(DataType const vertex) const; // HACK
+
+  dynamic_matrix<DataType> const& adyacency_matrix() const {
+    return adyacency_matrix_;
+  };
+
+  dynamic_matrix<DataType> adyacency_matrix() { return adyacency_matrix_; };
 
 private:
   binary_search_tree<DataType> vertices_{};
   linked_list<simple_node<unordered_pair<DataType, DataType>>> edges_{};
   std::string const dot_edge_char_{"--"};
   std::string const dot_ext_{".dot"};
+  dynamic_matrix<bool> adyacency_matrix_{0,0};
 };
 
 template <class DataType>
@@ -71,9 +79,9 @@ void graph<DataType>::generate_dot_file(std::string const file_name) const {
 }
 
 template <class DataType>
-linked_list<DataType>
+linked_list<simple_node<DataType>>
 graph<DataType>::adyacent_vertices(DataType const vertex) const {
-  linked_list<DataType> found_vertices{};
+  linked_list<simple_node<DataType>> found_vertices{};
   auto it{algorithm::search(
       edges_,
       [](unordered_pair<DataType, DataType> x, DataType const vertex) {
@@ -92,12 +100,6 @@ graph<DataType>::adyacent_vertices(DataType const vertex) const {
         vertex);
   }
   return std::move(found_vertices);
-}
-
-template <class DataType>
-dynamic_matrix<DataType> graph<DataType>::adyacency_matrix() const {
-  dynamic_matrix<DataType> tmp{vertices_.size(), vertices_.size()};
-  // TODO
 }
 
 } // namespace brocolio::container

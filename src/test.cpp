@@ -18,6 +18,7 @@ int main() {
   n=std::move(m);
   n+=n;
   n+=n;
+  std::cout << "gaaaaa" << std::endl;
   std::cout << m.size().y << std::endl;
   std::cout << n(0,0) << std::endl;
   std::cout << n(0,1) << std::endl;

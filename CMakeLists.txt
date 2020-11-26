@@ -13,4 +13,4 @@ set(CMAKE_CXX_FLAGS "-mavx2")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(test test.cpp)
+add_executable(test src/test.cpp)
