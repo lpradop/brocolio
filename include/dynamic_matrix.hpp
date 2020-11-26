@@ -1,5 +1,6 @@
 #pragma once
 #include "algorithm.hpp"
+#include "concepts.hpp"
 #include "ordered_pair.hpp"
 #include <immintrin.h>
 #include <iostream>
@@ -7,7 +8,7 @@
 namespace brocolio::container {
 
 // Dynamic_Matrix template prototype by brocolio de la CHUNSA
-template <class DataType> class dynamic_matrix {
+template <concepts::numeric DataType> class dynamic_matrix {
 public:
   dynamic_matrix() = default;
   dynamic_matrix(std::size_t const rows, std::size_t const columns);
@@ -32,28 +33,28 @@ private:
   DataType* matrix_data_{nullptr};
 };
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>::dynamic_matrix(std::size_t const rows,
                                          std::size_t const columns)
     : size_(ordered_pair<std::size_t, std::size_t>{rows, columns}),
       matrix_data_size_(size_.x * size_.y),
       matrix_data_(new DataType[matrix_data_size_]) {}
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>::dynamic_matrix(dynamic_matrix const& other)
     : dynamic_matrix(other.size_.x, other.size_.y) {
   for (std::size_t i{0}; i < matrix_data_size_; ++i)
     matrix_data_[i] = other.matrix_data_[i];
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>::dynamic_matrix(dynamic_matrix<DataType>&& other)
     : size_(other.size_), matrix_data_size_(other.matrix_data_size_) {
   matrix_data_ = other.matrix_data_;
   other.matrix_data_ = nullptr;
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>::dynamic_matrix(
     std::initializer_list<std::initializer_list<DataType>> const il) {
   if (algorithm::all_of(il.begin(), il.end(),
@@ -79,7 +80,7 @@ dynamic_matrix<DataType>::dynamic_matrix(
   }
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>&
 dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
   if (matrix_data_size_ == other.matrix_data_size_) {
@@ -91,7 +92,7 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
   }
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<DataType>&
 dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) {
   size_ = other.size_;
@@ -104,13 +105,13 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) {
   return *this;
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 DataType& dynamic_matrix<DataType>::operator()(std::size_t const i,
                                                std::size_t const j) {
   return matrix_data_[size_.x * i + j];
 }
 
-template <class DataType>
+template <concepts::numeric DataType>
 dynamic_matrix<float>&
 dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
 
@@ -161,7 +162,7 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
   return *this;
 }
 
-template <class DataType> // REVIEW
+template <concepts::numeric DataType> // REVIEW
 dynamic_matrix<float>
 dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
   if (size_ == rhs.size_) {
@@ -174,7 +175,8 @@ dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
   }
 }
 
-template <class DataType> dynamic_matrix<DataType>::~dynamic_matrix() {
+template <concepts::numeric DataType>
+dynamic_matrix<DataType>::~dynamic_matrix() {
   delete[] matrix_data_;
 }
 } // namespace brocolio::container

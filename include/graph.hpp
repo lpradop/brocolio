@@ -34,7 +34,7 @@ private:
   linked_list<simple_node<unordered_pair<DataType, DataType>>> edges_{};
   std::string const dot_edge_char_{"--"};
   std::string const dot_ext_{".dot"};
-  dynamic_matrix<bool> adyacency_matrix_{0,0};
+  dynamic_matrix<bool> adyacency_matrix_{};
 };
 
 template <class DataType>

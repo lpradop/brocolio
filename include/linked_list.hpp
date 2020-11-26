@@ -1,13 +1,16 @@
 #pragma once
+#include "concepts.hpp"
 #include "node.hpp"
+#include "type_traits.hpp"
 #include <iostream>
 #include <type_traits>
 namespace brocolio::container {
 // if simple_node
-template <typename NodeType, typename Enable = void> class base_linked_list {};
+template <concepts::node NodeType, typename Enable = void>
+class base_linked_list {};
 
 // if doubly_node
-template <typename NodeType>
+template <concepts::node NodeType>
 class base_linked_list<
     NodeType,
     std::enable_if_t<std::is_same_v<
@@ -16,7 +19,8 @@ protected:
   NodeType* tail_{nullptr};
 };
 
-template <Node NodeType> class linked_list : base_linked_list<NodeType> {
+template <concepts::node NodeType>
+class linked_list : base_linked_list<NodeType> {
 public:
   class iterator;
   linked_list() = default;
@@ -49,7 +53,7 @@ private:
   NodeType* head_{nullptr};
 };
 
-template <Node NodeType> class linked_list<NodeType>::iterator {
+template <concepts::node NodeType> class linked_list<NodeType>::iterator {
 public:
   iterator() = default;
   iterator(NodeType* const it_node) : it_node_(it_node){};
@@ -83,7 +87,7 @@ private:
   NodeType* it_node_{nullptr};
 };
 
-template <Node NodeType>
+template <concepts::node NodeType>
 linked_list<NodeType>::linked_list(linked_list const& other)
     : size_(other.size_) {
   if constexpr (std::is_same_v<
@@ -121,7 +125,7 @@ linked_list<NodeType>::linked_list(linked_list const& other)
   }
 }
 
-template <Node NodeType>
+template <concepts::node NodeType>
 linked_list<NodeType>::linked_list(linked_list&& other)
     : head_(other.head_), size_(other.size_) {
   other.head_ = nullptr;
@@ -135,14 +139,16 @@ linked_list<NodeType>::linked_list(linked_list&& other)
   }
 }
 
-template <Node NodeType> linked_list<NodeType>::~linked_list() { clear(); }
+template <concepts::node NodeType> linked_list<NodeType>::~linked_list() {
+  clear();
+}
 
-template <Node NodeType>
+template <concepts::node NodeType>
 inline std::size_t linked_list<NodeType>::size() const {
   return size_;
 }
 
-template <Node NodeType>
+template <concepts::node NodeType>
 void linked_list<NodeType>::insert(
     type_traits::extract_parameter_t<NodeType> const data,
     std::size_t const position) {
@@ -199,7 +205,7 @@ void linked_list<NodeType>::insert(
   ++size_;
 }
 
-template <Node NodeType>
+template <concepts::node NodeType>
 void linked_list<NodeType>::remove(std::size_t const position) {
   if constexpr (std::is_same_v<
                     NodeType,
@@ -230,17 +236,17 @@ void linked_list<NodeType>::remove(std::size_t const position) {
   }
 }
 
-template <Node NodeType>
+template <concepts::node NodeType>
 typename linked_list<NodeType>::iterator linked_list<NodeType>::begin() const {
   return iterator{head_};
 }
 
-template <Node NodeType>
+template <concepts::node NodeType>
 typename linked_list<NodeType>::iterator linked_list<NodeType>::end() const {
   return iterator{nullptr};
 }
 
-template <Node NodeType> void linked_list<NodeType>::clear() {
+template <concepts::node NodeType> void linked_list<NodeType>::clear() {
   for (NodeType* tmp{nullptr}; head_ != nullptr; head_ = tmp) {
     tmp = head_->next;
     delete head_;
@@ -248,7 +254,7 @@ template <Node NodeType> void linked_list<NodeType>::clear() {
   size_ = 0;
 }
 
-template <Node NodeType> void linked_list<NodeType>::print() const {
+template <concepts::node NodeType> void linked_list<NodeType>::print() const {
   for (NodeType const* tmp{head_}; tmp != nullptr; tmp = tmp->next) {
     std::cout << tmp->data << " -> ";
   }
