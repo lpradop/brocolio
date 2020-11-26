@@ -24,7 +24,7 @@ public:
 
 private:
   binary_search_tree<DataType> vertices_{};
-  linked_list<unordered_pair<DataType, DataType>> edges_{};
+  linked_list<simple_node<unordered_pair<DataType, DataType>>> edges_{};
   std::string const dot_edge_char_{"--"};
   std::string const dot_ext_{".dot"};
 };

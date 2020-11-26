@@ -26,7 +26,7 @@ public:
   void insert(type_traits::extract_parameter_t<NodeType> const data,
               std::size_t const position); // HACK
 
-  void remove(std::size_t const position);
+  void remove(std::size_t const position); // HACK
 
   type_traits::extract_parameter_t<NodeType>& front() { return head_->data; }
 
@@ -40,7 +40,7 @@ public:
   iterator begin() const;
   iterator end() const;
   std::size_t size() const;
-  void clear();
+  void clear(); // REVIEW
   void print() const;
   bool empty() const { return size_ == 0; }
 
