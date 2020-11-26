@@ -1,4 +1,3 @@
-#include "linked_list.hpp"
 #include <iostream>
 #include <type_traits>
 template <typename T, typename Enable = void> class base_class {};
@@ -47,15 +46,9 @@ enable_if_t<is_floating_point_v<S>, double> test<T>::b() {
   return 1.0;
 }
 
-using namespace brocolio::container;
 int main() {
   // outer<int>::inner<double> a;
-  linked_list<simple_node<int>> a{};
-  a.insert(1, 0);
-  a.insert(2, 1);
-  a.insert(3, 2);
-  a.print();
-  std::cout << "gaaaaa" << std::endl;
+
   std::cout << "gaaaaa" << std::endl;
   std::cout << "gaaaaa" << std::endl;
   std::cout << "gaaaaa" << std::endl;
