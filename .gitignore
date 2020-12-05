@@ -1,6 +1,10 @@
 .ccls-cache/
+.vscode/
+.idea/
 *.out
 compile_commands.json
 build/
+CMakeFiles/
 .clangd/
 .cache/
+CMakeCache.txt

@@ -5,9 +5,8 @@ namespace brocolio::container {
 // array class wrapper by Brocolio de la CHUNSA
 template <class DataType, std::size_t Size> class array {
 public:
-  static_assert(Size > 0, "array must be at least size 1");
+  static_assert(Size > 0, "array size must be at least 1");
   class iterator;
-  class const_iterator; // TODO
   array();
   array(array const&);
   array(array&&);
@@ -21,8 +20,6 @@ public:
   array& operator=(array&&);
   iterator begin();
   iterator end();
-  const_iterator cbegin() const; // TODO
-  const_iterator cend() const;   // TODO
 
 private:
   DataType* c_array_{nullptr};
@@ -33,9 +30,11 @@ class array<DataType, array_size>::iterator {
 public:
   iterator() = default;
   iterator(iterator const&) = default;
-  iterator(array const& container, std::size_t const index,
+  iterator(array* container, std::size_t const index,
            bool const end_flag = false);
   ~iterator() = default;
+  iterator& operator=(iterator const&) const = default;
+  iterator& operator=(iterator&) = default;
   DataType& operator*();
   bool operator==(iterator const&) const;
   bool operator!=(iterator const&) const;
@@ -44,41 +43,20 @@ public:
   iterator& operator++(int);
 
 private:
-  array const& container_;
+  array* container_;
   std::size_t index_{0};
   bool end_flag_{false};
 };
 
 template <class DataType, std::size_t Size>
-class array<DataType, Size>::const_iterator {
-public:
-  const_iterator() = default;
-  const_iterator(const_iterator const&) = default;
-  const_iterator(array const& container, std::size_t const index,
-                 bool const end_flag = false);
-  ~const_iterator() = default;
-  DataType const& operator*() const;
-  bool operator==(const_iterator const&) const;
-  bool operator!=(const_iterator const&) const;
-  const_iterator& operator++();
-  const_iterator& operator--();
-  const_iterator& operator++(int);
-
-private:
-  array const& container_;
-  std::size_t index_{0};
-  bool end_flag_{false};
-};
-
-template <class DataType, std::size_t Size>
-array<DataType, Size>::iterator::iterator(array const& container,
+array<DataType, Size>::iterator::iterator(array* container,
                                           std::size_t const index,
                                           bool const end_flag)
     : container_(container), index_(index), end_flag_(end_flag) {}
 
 template <class DataType, std::size_t Size>
 DataType& array<DataType, Size>::iterator::operator*() {
-  return container_.c_array_[index_];
+  return container_->c_array_[index_];
 }
 
 template <class DataType, std::size_t Size>
@@ -86,8 +64,8 @@ bool array<DataType, Size>::iterator::operator==(iterator const& other) const {
   if (end_flag_ and other.end_flag_) {
     return true;
   } else if (not(end_flag_ or other.end_flag_)) {
-    return ((container_.c_array_ + index_) ==
-            (other.container_.c_array_ + index_));
+    return ((container_->c_array_ + index_) ==
+            (other.container_->c_array_ + index_));
   } else {
     return false;
   }
@@ -111,49 +89,7 @@ array<DataType, Size>::iterator::operator++() {
 }
 
 template <class DataType, std::size_t Size>
-array<DataType, Size>::const_iterator::const_iterator(array const& container,
-                                                      std::size_t const index,
-                                                      bool const end_flag)
-    : container_(container), index_(index), end_flag_(end_flag) {}
-
-template <class DataType, std::size_t Size>
-DataType const& array<DataType, Size>::const_iterator::operator*() const {
-  return container_.c_array_[index_];
-}
-
-template <class DataType, std::size_t Size>
-bool array<DataType, Size>::const_iterator::operator==(
-    const_iterator const& other) const {
-  if (end_flag_ and other.end_flag_) {
-    return true;
-  } else if (not(end_flag_ or other.end_flag_)) {
-    return (container_.c_array_ + index_) ==
-           (other.container_.c_array_ + index_);
-  } else {
-    return false;
-  }
-}
-
-template <class DataType, std::size_t Size>
-bool array<DataType, Size>::const_iterator::operator!=(
-    const_iterator const& other) const {
-  return not(*this == other);
-}
-
-template <class DataType, std::size_t Size>
-typename array<DataType, Size>::const_iterator&
-array<DataType, Size>::const_iterator::operator++() {
-  if ((index_ < Size) and (not end_flag_)) {
-    ++index_;
-    if (index_ == Size) {
-      { end_flag_ = true; }
-    }
-  }
-  return *this;
-}
-
-template <class DataType, std::size_t Size>
-array<DataType, Size>::array() : c_array_(new DataType[Size]) {}
+array<DataType, Size>::array() : c_array_(new DataType[Size]{}) {}
 
 template <class DataType, std::size_t Size>
 array<DataType, Size>::array(array const& other)
@@ -236,23 +172,12 @@ template <class DataType, std::size_t Size> array<DataType, Size>::~array() {
 
 template <class DataType, std::size_t Size>
 typename array<DataType, Size>::iterator array<DataType, Size>::begin() {
-  return iterator{*this, 0};
+  return iterator{this, 0};
 }
 
 template <class DataType, std::size_t Size>
 typename array<DataType, Size>::iterator array<DataType, Size>::end() {
-  return iterator{*this, Size, true};
+  return iterator{this, Size, true};
 }
 
-template <class DataType, std::size_t Size>
-typename array<DataType, Size>::const_iterator
-array<DataType, Size>::cbegin() const {
-  return const_iterator{*this, 0};
-}
-
-template <class DataType, std::size_t Size>
-typename array<DataType, Size>::const_iterator
-array<DataType, Size>::cend() const {
-  return const_iterator{*this, Size, true};
-}
 } // namespace brocolio::container

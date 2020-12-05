@@ -12,28 +12,30 @@ namespace brocolio::container {
 template <concepts::numeric DataType> class dynamic_matrix {
 public:
   dynamic_matrix() = default;
-  dynamic_matrix(std::size_t const rows, std::size_t const columns);
+  dynamic_matrix(std::size_t rows, std::size_t columns);
   dynamic_matrix(dynamic_matrix const&);
-  dynamic_matrix(dynamic_matrix&&);
-  dynamic_matrix(
-      std::initializer_list<std::initializer_list<DataType>> const il);
+  dynamic_matrix(dynamic_matrix&&) noexcept;
+  dynamic_matrix(std::initializer_list<std::initializer_list<DataType>> il);
   ~dynamic_matrix();
 
   dynamic_matrix& operator=(dynamic_matrix const&);
-  dynamic_matrix& operator=(dynamic_matrix&&);
+  dynamic_matrix& operator=(dynamic_matrix&&) noexcept;
   dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
   dynamic_matrix<float> operator+(dynamic_matrix<float> const& rhs) const;
   dynamic_matrix<int>& operator+=(dynamic_matrix<int> const& rhs);
   dynamic_matrix<int> operator+(dynamic_matrix<int> const& rhs) const;
-  DataType& operator()(std::size_t const i, std::size_t const j);
+  DataType& operator()(std::size_t i, std::size_t j);
 
-  ordered_pair<std::size_t, std::size_t> size() const { return size_; }
-  void resize(std::size_t const rows, std::size_t const columns); // TODO
+  [[nodiscard]] ordered_pair<std::size_t, std::size_t> size() const {
+    return size_;
+  }
+  // void resize(std::size_t const rows, std::size_t const columns); // TODO
 
 private:
   ordered_pair<std::size_t, std::size_t> size_{0, 0};
   std::size_t matrix_data_size_{0};
   DataType* matrix_data_{nullptr};
+  [[nodiscard]] DataType* const raw_transpose() const;
 };
 
 template <concepts::numeric DataType>
@@ -51,7 +53,8 @@ dynamic_matrix<DataType>::dynamic_matrix(dynamic_matrix const& other)
 }
 
 template <concepts::numeric DataType>
-dynamic_matrix<DataType>::dynamic_matrix(dynamic_matrix<DataType>&& other)
+dynamic_matrix<DataType>::dynamic_matrix(
+    dynamic_matrix<DataType>&& other) noexcept
     : size_(other.size_), matrix_data_size_(other.matrix_data_size_) {
   matrix_data_ = other.matrix_data_;
   other.matrix_data_ = nullptr;
@@ -97,7 +100,7 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
 
 template <concepts::numeric DataType>
 dynamic_matrix<DataType>&
-dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) {
+dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) noexcept {
   size_ = other.size_;
   matrix_data_size_ = other.matrix_data_size_;
   matrix_data_ = other.matrix_data_;
@@ -264,4 +267,10 @@ template <concepts::numeric DataType>
 dynamic_matrix<DataType>::~dynamic_matrix() {
   delete[] matrix_data_;
 }
+
+template <concepts::numeric DataType>
+DataType* const dynamic_matrix<DataType>::raw_transpose() const {
+  DataType* transpose{new DataType[matrix_data_size_]};
+}
+
 } // namespace brocolio::container
