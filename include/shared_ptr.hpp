@@ -24,6 +24,7 @@ public:
   std::size_t use_count() const noexcept;
   void reset() noexcept;
   void reset(Type* pointer) noexcept;
+  Type* get() const noexcept;
 
 private:
   Type* raw_pointer_{nullptr};
@@ -144,6 +145,11 @@ void shared_ptr<Type, Deleter>::reset(Type* const pointer) noexcept {
     raw_pointer_ = nullptr;
     reference_counter_ = nullptr;
   }
+}
+
+template <typename Type, typename Deleter>
+Type* shared_ptr<Type, Deleter>::get() const noexcept {
+  return raw_pointer_;
 }
 
 template <typename Type, typename Deleter>

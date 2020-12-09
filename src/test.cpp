@@ -5,8 +5,8 @@
 #include "binary_search_tree.hpp"
 // #include "graph.hpp"
 // #include "stack.hpp"
-#include <iostream>
 #include "memory.hpp"
+#include <iostream>
 // #include "caesar_cipher.hpp"
 // #include "unordered_pair.hpp"
 // #include "dynamic_matrix.hpp"
@@ -14,9 +14,9 @@
 // using namespace brocolio::container;
 // using namespace brocolio::algorithm;
 
-
 int main() {
-  brocolio::memory::unique_ptr<int> p{nullptr};
+  brocolio::memory::shared_ptr<int> p{new int{}};
+  std::cout << p.use_count() << std::endl;
   // brocolio::memory::unique_ptr<int> q{new int{1}};
   // int* p{new int{1}};
   // std::cout << (p==q) << std::endl;
@@ -46,5 +46,6 @@ int main() {
   // std::cout << c.use_count() << std::endl;
   // brocolio::crypthography::caesar_cipher<97, 115> c{};
   // dynamic_matrix<int> m{{10, 4}};
-  // c.generate_character_frequency("std::string filename", "ueo", "uhtenosha","uhetsoah");
+  // c.generate_character_frequency("std::string filename", "ueo",
+  // "uhtenosha","uhetsoah");
 }
