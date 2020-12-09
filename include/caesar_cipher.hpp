@@ -1,6 +1,7 @@
 #pragma once
 #include "array.hpp"
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -26,8 +27,13 @@ public:
                            std::string output_filename,
                            std::string dict_filename) const;
 
+  template <typename... Args>
+  container::array<std::size_t, UpperBound - LowerBound + 1>
+  generate_character_frequency(std::string filename, Args...) const;
+
 private:
   int cipher_number(int x, int shift) const;
+  std::size_t index_map(int x) const;
 };
 
 template <int LowerBound, int UpperBound>
@@ -86,14 +92,39 @@ caesar_cipher<LowerBound, UpperBound>::brute_force_decrypt_file(
         }
       }
     }
-    if(matches[shift] > max_value ){
-      max_value=matches[shift];
-      possible_shift=shift;
+    if (matches[shift] > max_value) {
+      max_value = matches[shift];
+      possible_shift = shift;
     }
     decrypted_file.close();
     dict_file.close();
   }
   decrypt_file(input_filename, output_filename, possible_shift);
   return std::move(matches);
+}
+
+template <int LowerBound, int UpperBound>
+template <typename... Args>
+container::array<std::size_t, UpperBound - LowerBound + 1>
+caesar_cipher<LowerBound, UpperBound>::generate_character_frequency(
+    std::string filename, Args...) const {
+  std::ifstream input_file{filename};
+  container::array<std::size_t, range_size> frequencies{};
+  for (int ch{}; ch >= 0;) {
+    ch = input_file.get();
+    if (ch >= 0 && LowerBound <= ch && ch <= UpperBound) {
+      ++frequencies[index_map(ch)];
+    }
+    return std::move(frequencies);
+  }
+}
+
+template <int LowerBound, int UpperBound>
+std::size_t caesar_cipher<LowerBound, UpperBound>::index_map(int x) const {
+  if (LowerBound <= x && x <= UpperBound) {
+    return static_cast<std::size_t>(x - LowerBound);
+  } else {
+    throw std::domain_error{"invalid x argument"};
+  }
 }
 } // namespace brocolio::crypthography
