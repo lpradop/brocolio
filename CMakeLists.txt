@@ -9,7 +9,7 @@ project(BROCOLIO LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
-set(CMAKE_CXX_FLAGS "-mavx2")
+set(CMAKE_CXX_FLAGS "-mavx2 -mfma")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

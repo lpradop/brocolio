@@ -1,0 +1,7 @@
+x <- c(1, 4, 5, 8, 5, 4, 5, 6, 8, 2, 4, 21, 19, 11, 17, 15)
+x_mean <- mean(x)
+print(x_mean)
+pdf()
+plot(x, x)
+plot(sin(x))
+dev.off()

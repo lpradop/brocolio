@@ -42,9 +42,8 @@ private:
 
   DataType* raw_transpose() const noexcept;
 
-  template <concepts::numeric T>
-  void row_of_product(SizeType const row, T* const a, T* const b, T* const c,
-                      SizeType b_ncol) noexcept;
+  void product_helper(DataType s, DataType* b, DataType* c,
+                      SizeType n) noexcept;
 };
 
 template <concepts::numeric DataType, concepts::numeric SizeType>
@@ -259,12 +258,24 @@ template <concepts::numeric DataType, concepts::numeric SizeType>
 dynamic_matrix<DataType, SizeType>
 dynamic_matrix<DataType, SizeType>::operator+(dynamic_matrix const& rhs) const {
   if (size_ == rhs.size_) {
-    dynamic_matrix<DataType, SizeType> result{this->size_.x, this->size_.y};
+    dynamic_matrix<DataType, SizeType> result{size_.x, size_.y};
     result += rhs;
     result += *this;
     return result;
   } else {
     throw std::length_error{"matrices cannot be added, on a+b call"};
+  }
+}
+
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>
+dynamic_matrix<DataType, SizeType>::operator*(dynamic_matrix const& rhs) const {
+  if (size_.y == rhs.size_.x) {
+    dynamic_matrix<DataType, SizeType> result{*this};
+    result *= rhs;
+    return result;
+  } else {
+    throw std::length_error{"matrices cannot be multiplied"};
   }
 }
 
@@ -277,21 +288,20 @@ dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
 #if defined __AVX2__
     // aliases
     auto const& nrows_of_lhs{size_.x};
-    auto const& ncolumns_of_lhs{size_.y};
     auto const& nrows_of_rhs{rhs.size_.x};
     auto const& ncolumns_of_rhs{rhs.size_.y};
 
     // new matrix creation
-    matrix_data_size_ = nrows_of_lhs * ncolumns_of_rhs;
-    auto result{new DataType[matrix_data_size_]{}};
+    SizeType const new_matrix_data_size{nrows_of_lhs * ncolumns_of_rhs};
+    auto result{new DataType[new_matrix_data_size]{}};
 
     // transversal pointers
-    auto tp_result{result};
-
-    for (SizeType row{0}; row < nrows_of_rhs; ++row) {
-      row_of_product(row, matrix_data_, rhs.matrix_data_, tp_result,
-                     ncolumns_of_rhs);
-      tp_result += ncolumns_of_rhs;
+    for (SizeType i{0}; i < nrows_of_rhs; ++i) {
+      for (SizeType k{0}; k < nrows_of_rhs; ++k) {
+        product_helper(matrix_data_[i * nrows_of_rhs + k],
+                       &rhs.matrix_data_[k * ncolumns_of_rhs],
+                       &result[i * nrows_of_rhs], ncolumns_of_rhs);
+      }
     }
 
     // cleaning and updating matrix
@@ -299,6 +309,7 @@ dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
     matrix_data_ = result;
     size_.x = nrows_of_lhs;
     size_.y = ncolumns_of_rhs;
+    matrix_data_size_ = new_matrix_data_size;
 
     return *this;
   } else {
@@ -308,45 +319,44 @@ dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
 #endif // __linux__
 }
 
+// calculate scalar*[......] (row vector of b) and accumulate the result into c
 template <concepts::numeric DataType, concepts::numeric SizeType>
-template <concepts::numeric T>
-void dynamic_matrix<DataType, SizeType>::row_of_product(
-    SizeType const row, T* const a, T* const b, T* const c,
-    SizeType ncolumn_of_b) noexcept {
+void dynamic_matrix<DataType, SizeType>::product_helper(
+    DataType const scalar, DataType* const b, DataType* const c,
+    SizeType const ncolumn_of_b) noexcept {
 #if defined __linux__
 #if defined __AVX2__
-  auto const& ncolumn_of_a{size_.y};
+  // variables for block by block computation
   SizeType const partial_bound{ncolumn_of_b / block_size_};
   SizeType const remainder_bound{ncolumn_of_b % block_size_};
+  auto b_block_pointer{b};
+  auto c_block_pointer{c};
+
+  // mask for computation of remainder elementents
   int arr_mask[block_size_]{};
+  for (SizeType i{0}; i < remainder_bound; ++i) {
+    arr_mask[i] = -1;
+  }
 
-  if constexpr (std::is_same_v<T, float>) {
+  if constexpr (std::is_same_v<DataType, float>) {
 
-    for (int column{0}; column < ncolumn_of_a; ++column) {
-      auto a_row_col{_mm256_set1_ps(a[row * ncolumn_of_a + column])};
-      auto b_block_pointer{b};
-      auto c_block_pointer{c};
+    auto scalar_block{_mm256_set1_ps(scalar)};
 
-      for (SizeType k{0}; k < partial_bound; ++k) {
-        auto b_row_block{_mm256_loadu_ps(b_block_pointer)};
-        auto c_row_block{_mm256_loadu_ps(c_block_pointer)};
-        c_row_block = _mm256_fmadd_ps(a_row_col, b_row_block, c_row_block);
-        _mm256_storeu_ps(c_block_pointer, c_row_block);
-        b_block_pointer += block_size_;
-        c_block_pointer += block_size_;
-      }
+    for (SizeType i{0}; i < partial_bound; ++i) {
+      auto b_block{_mm256_loadu_ps(b_block_pointer)};
+      auto c_block{_mm256_loadu_ps(c_block_pointer)};
+      c_block = _mm256_fmadd_ps(scalar_block, b_block, c_block);
+      _mm256_storeu_ps(c_block_pointer, c_block);
+      b_block_pointer += block_size_;
+      c_block_pointer += block_size_;
+    }
 
-      if (remainder_bound != 0) {
-        for (SizeType i{0}; i < remainder_bound; ++i) {
-          arr_mask[i] = -1;
-        }
-        __m256i mask{
-            _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
-        auto b_row_block{_mm256_maskload_ps(b_block_pointer, mask)};
-        auto c_row_block{_mm256_maskload_ps(c_block_pointer, mask)};
-        c_row_block = _mm256_fmadd_ps(a_row_col, b_row_block, c_row_block);
-        _mm256_maskstore_ps(c_block_pointer, mask, c_row_block);
-      }
+    if (remainder_bound != 0) {
+      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+      auto b_block{_mm256_maskload_ps(b_block_pointer, mask)};
+      auto c_block{_mm256_maskload_ps(c_block_pointer, mask)};
+      c_block = _mm256_fmadd_ps(scalar_block, b_block, c_block);
+      _mm256_maskstore_ps(c_block_pointer, mask, c_block);
     }
 
 #endif // __AVX2__

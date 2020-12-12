@@ -1,51 +1,21 @@
-// #include "algorithm.hpp"
-// #include "matrix.hpp"
-// #include "priority_queue.hpp"
-// #include <immintrin.h>
-#include "binary_search_tree.hpp"
-// #include "graph.hpp"
-// #include "stack.hpp"
-#include "memory.hpp"
+#include "dynamic_matrix.hpp"
 #include <iostream>
-// #include "caesar_cipher.hpp"
-// #include "unordered_pair.hpp"
-// #include "dynamic_matrix.hpp"
-// #include "linked_list.hpp"
-// using namespace brocolio::container;
-// using namespace brocolio::algorithm;
-
+#include <limits>
 int main() {
-  brocolio::memory::shared_ptr<int> p{new int{}};
-  std::cout << p.use_count() << std::endl;
-  // brocolio::memory::unique_ptr<int> q{new int{1}};
-  // int* p{new int{1}};
-  // std::cout << (p==q) << std::endl;
-  // brocolio::container::binary_search_tree<int> tree{14};
-  // std::cout << tree.size() << std::endl;
-  // tree.insert(4);
-  // // std::cout << tree.size() << std::endl;
-  // // tree.insert(14);
-  // // tree.insert(2);
-  // // tree.insert(1);
-  // // std::cout << tree.size() << std::endl;
-  // // std::cout << tree.min_key() << std::endl;
-  // // std::cout << tree.max_key() << std::endl;
-  // // std::cout << tree.search(40) << std::endl;
-  // // std::cout << tree.predecessor(14) << std::endl;
-  // // std::cout << "gaaaaa" << std::endl;
-  // std::cout << tree.remove(14) << std::endl;
-
-  // tree.print();
-  // brocolio::memory::shared_ptr<int> a{p};
-  // std::cout << a.use_count() << std::endl;
-  // brocolio::memory::shared_ptr<int> b{a};
-  // std::cout << b.use_count() << std::endl;
-  // brocolio::memory::shared_ptr<int> c{b};
-  // std::cout << a.use_count() << std::endl;
-  // std::cout << b.use_count() << std::endl;
-  // std::cout << c.use_count() << std::endl;
-  // brocolio::crypthography::caesar_cipher<97, 115> c{};
-  // dynamic_matrix<int> m{{10, 4}};
-  // c.generate_character_frequency("std::string filename", "ueo",
-  // "uhtenosha","uhetsoah");
+  brocolio::container::dynamic_matrix<float> m{{1, 2}};
+  brocolio::container::dynamic_matrix<float> n{{1, 4}, {1, 4}};
+  std::cout << m.size().x << "," << m.size().y << std::endl;
+  m=m * n;
+  for (int i{0}; i < m.size().x; ++i) {
+    for (int j{0}; j < m.size().y; ++j) {
+      std::cout << m(i, j) << std::endl;
+    }
+  }
+  std::cout << m.size().x << "," << m.size().y << std::endl;
 }
+// #include "caesar_cipher.hpp"
+// int main() {
+//   brocolio::crypthography::caesar_cipher<97, 122> caesar{};
+//   caesar.generate_character_frequency("../src/1.txt", "../src/2.txt",
+//                                       "../src/3.txt");
+// }
