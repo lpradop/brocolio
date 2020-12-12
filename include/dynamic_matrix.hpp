@@ -2,78 +2,90 @@
 #include "algorithm.hpp"
 #include "concepts.hpp"
 #include "ordered_pair.hpp"
+#include "simd.hpp"
 #include <immintrin.h>
 #include <iostream>
 #include <stdexcept>
 namespace brocolio::container {
 
 // Dynamic_Matrix template prototype by brocolio de la CHUNSA
-// TODO be able to chose de size type of the matrix
-template <concepts::numeric DataType> class dynamic_matrix {
+// TODO be able to choose the size type of the matrix
+template <concepts::numeric DataType = int,
+          concepts::numeric SizeType = unsigned int>
+class dynamic_matrix {
 public:
   dynamic_matrix() = default;
-  dynamic_matrix(std::size_t rows, std::size_t columns);
-  dynamic_matrix(dynamic_matrix const&);
+  dynamic_matrix(SizeType rows, SizeType columns) noexcept;
+  dynamic_matrix(dynamic_matrix const&) noexcept;
   dynamic_matrix(dynamic_matrix&&) noexcept;
   dynamic_matrix(std::initializer_list<std::initializer_list<DataType>> il);
-  ~dynamic_matrix();
+  ~dynamic_matrix() noexcept;
 
-  dynamic_matrix& operator=(dynamic_matrix const&);
+  dynamic_matrix& operator=(dynamic_matrix const&) noexcept;
   dynamic_matrix& operator=(dynamic_matrix&&) noexcept;
+  dynamic_matrix operator+(dynamic_matrix const& rhs) const;
+  dynamic_matrix operator*(dynamic_matrix const& rhs) const;
   dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
-  dynamic_matrix<float> operator+(dynamic_matrix<float> const& rhs) const;
   dynamic_matrix<int>& operator+=(dynamic_matrix<int> const& rhs);
-  dynamic_matrix<int> operator+(dynamic_matrix<int> const& rhs) const;
-  DataType& operator()(std::size_t i, std::size_t j);
+  dynamic_matrix<float>& operator*=(dynamic_matrix<float> const& rhs);
+  DataType& operator()(SizeType i, SizeType j) const;
 
-  [[nodiscard]] ordered_pair<std::size_t, std::size_t> size() const {
-    return size_;
-  }
-  // void resize(std::size_t const rows, std::size_t const columns); // TODO
+  ordered_pair<SizeType, SizeType> size() const noexcept { return size_; }
+  void resize(SizeType rows, SizeType columns); // TODO
+  dynamic_matrix transpose() const noexcept;
 
 private:
-  ordered_pair<std::size_t, std::size_t> size_{0, 0};
-  std::size_t matrix_data_size_{0};
+  ordered_pair<SizeType, SizeType> size_{0, 0};
+  SizeType matrix_data_size_{0};
   DataType* matrix_data_{nullptr};
-  [[nodiscard]] DataType* const raw_transpose() const;
+  static SizeType constexpr block_size_{simd::block_size_v<DataType>};
+
+  DataType* raw_transpose() const noexcept;
+
+  template <concepts::numeric T>
+  void row_of_product(SizeType const row, T* const a, T* const b, T* const c,
+                      SizeType b_ncol) noexcept;
 };
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>::dynamic_matrix(std::size_t const rows,
-                                         std::size_t const columns)
-    : size_(ordered_pair<std::size_t, std::size_t>{rows, columns}),
-      matrix_data_size_(size_.x * size_.y),
-      matrix_data_(new DataType[matrix_data_size_]) {}
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>::dynamic_matrix(
+    SizeType const rows, SizeType const columns) noexcept
+    : size_{ordered_pair<SizeType, SizeType>{rows, columns}},
+      matrix_data_size_{size_.x * size_.y},
+      matrix_data_{new DataType[matrix_data_size_]{}} {}
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>::dynamic_matrix(dynamic_matrix const& other)
-    : dynamic_matrix(other.size_.x, other.size_.y) {
-  for (std::size_t i{0}; i < matrix_data_size_; ++i)
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>::dynamic_matrix(
+    dynamic_matrix const& other) noexcept
+    : dynamic_matrix{other.size_.x, other.size_.y} {
+  for (SizeType i{0}; i < matrix_data_size_; ++i)
     matrix_data_[i] = other.matrix_data_[i];
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>::dynamic_matrix(
-    dynamic_matrix<DataType>&& other) noexcept
-    : size_(other.size_), matrix_data_size_(other.matrix_data_size_) {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>::dynamic_matrix(
+    dynamic_matrix&& other) noexcept
+    : size_{other.size_}, matrix_data_size_{other.matrix_data_size_} {
+  if (matrix_data_ != nullptr) delete[] matrix_data_;
   matrix_data_ = other.matrix_data_;
   other.matrix_data_ = nullptr;
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>::dynamic_matrix(
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>::dynamic_matrix(
     std::initializer_list<std::initializer_list<DataType>> const il) {
   if (algorithm::all_of(il.begin(), il.end(),
                         [&il](std::initializer_list<DataType> const& x) {
                           return x.size() == il.begin()->size();
                         })) {
-    size_ = ordered_pair<std::size_t, std::size_t>{(il.size()),
-                                                   (il.begin()->size())};
+    size_ = ordered_pair<SizeType, SizeType>{
+        static_cast<SizeType>(il.size()),
+        static_cast<SizeType>(il.begin()->size())};
     matrix_data_size_ = size_.x * size_.y;
     matrix_data_ = new DataType[matrix_data_size_];
-    std::size_t i{0};
+    SizeType i{0};
     for (auto const& row : il) {
-      std::size_t j{0};
+      SizeType j{0};
       for (DataType const& data : row) {
         matrix_data_[size_.x * i + j] = data;
         ++j;
@@ -86,11 +98,17 @@ dynamic_matrix<DataType>::dynamic_matrix(
   }
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>&
-dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>::~dynamic_matrix() noexcept {
+  delete[] matrix_data_;
+}
+
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>&
+dynamic_matrix<DataType, SizeType>::operator=(
+    dynamic_matrix const& other) noexcept {
   if (matrix_data_size_ == other.matrix_data_size_) {
-    for (std::size_t i{0}; i < matrix_data_size_; ++i)
+    for (SizeType i{0}; i < matrix_data_size_; ++i)
       matrix_data_[i] = other.matrix_data_[i];
     return *this;
   } else {
@@ -98,9 +116,9 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix const& other) {
   }
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>&
-dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) noexcept {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>&
+dynamic_matrix<DataType, SizeType>::operator=(dynamic_matrix&& other) noexcept {
   size_ = other.size_;
   matrix_data_size_ = other.matrix_data_size_;
   matrix_data_ = other.matrix_data_;
@@ -111,26 +129,26 @@ dynamic_matrix<DataType>::operator=(dynamic_matrix&& other) noexcept {
   return *this;
 }
 
-template <concepts::numeric DataType>
-DataType& dynamic_matrix<DataType>::operator()(std::size_t const i,
-                                               std::size_t const j) {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+DataType&
+dynamic_matrix<DataType, SizeType>::operator()(SizeType const i,
+                                               SizeType const j) const {
   return matrix_data_[size_.x * i + j];
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<float>&
-dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator+=(
+    dynamic_matrix<float> const& rhs) {
 
   if (size_ == rhs.size_) {
 #if defined __linux__
 #if defined __AVX2__
-    std::size_t constexpr block_size{8};
-    // __m256i mask{_mm256_set1_epi32(-1)};
+    SizeType constexpr block_size{8};
 #elif defined __AVX__
-    std::size_t constexpr block_size{4};
+    SizeType constexpr block_size{4};
 #endif // __AVX2__
 
-    std::size_t const partial_bound{matrix_data_size_ / block_size};
+    SizeType const partial_bound{matrix_data_size_ / block_size};
     short const remainder_bound{
         static_cast<short>(matrix_data_size_ % block_size)};
     int arr_mask[block_size]{};
@@ -138,7 +156,7 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
     float* block_rhs_pointer{rhs.matrix_data_};
 
 #if defined __AVX2__
-    for (std::size_t i{0}; i < partial_bound; ++i) {
+    for (SizeType i{0}; i < partial_bound; ++i) {
       __m256 simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
       __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
       simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
@@ -168,20 +186,20 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<float> const& rhs) {
   return *this;
 }
 
-template <concepts::numeric DataType>
+template <concepts::numeric DataType, concepts::numeric SizeType>
 dynamic_matrix<int>&
-dynamic_matrix<DataType>::operator+=(dynamic_matrix<int> const& rhs) {
+dynamic_matrix<DataType, SizeType>::operator+=(dynamic_matrix<int> const& rhs) {
 
   if (size_ == rhs.size_) {
 #if defined __linux__
 #if defined __AVX2__
-    std::size_t constexpr block_size{8};
+    SizeType constexpr block_size{8};
     // __m256i mask{_mm256_set1_epi32(-1)};
 #elif defined __AVX__
-    std::size_t constexpr block_size{4};
+    SizeType constexpr block_size{4};
 #endif // __AVX2__
 
-    std::size_t const partial_bound{matrix_data_size_ / block_size};
+    SizeType const partial_bound{matrix_data_size_ / block_size};
     short const remainder_bound{
         static_cast<short>(matrix_data_size_ % block_size)};
     int arr_mask[block_size]{};
@@ -190,7 +208,7 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<int> const& rhs) {
 
 #if defined __AVX2__
     // block addition
-    for (std::size_t i{0}; i < partial_bound; ++i) {
+    for (SizeType i{0}; i < partial_bound; ++i) {
       // registers creation
       __m256i simd_lhs{
           _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(block_lhs_pointer))};
@@ -237,11 +255,11 @@ dynamic_matrix<DataType>::operator+=(dynamic_matrix<int> const& rhs) {
   }
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<float>
-dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>
+dynamic_matrix<DataType, SizeType>::operator+(dynamic_matrix const& rhs) const {
   if (size_ == rhs.size_) {
-    dynamic_matrix<float> result{this->size_.x, this->size_.y};
+    dynamic_matrix<DataType, SizeType> result{this->size_.x, this->size_.y};
     result += rhs;
     result += *this;
     return result;
@@ -250,27 +268,89 @@ dynamic_matrix<DataType>::operator+(dynamic_matrix<float> const& rhs) const {
   }
 }
 
-template <concepts::numeric DataType>
-dynamic_matrix<int>
-dynamic_matrix<DataType>::operator+(dynamic_matrix<int> const& rhs) const {
-  if (size_ == rhs.size_) {
-    dynamic_matrix<int> result{this->size_.x, this->size_.y};
-    result += rhs;
-    result += *this;
-    return result;
+template <concepts::numeric DataType, concepts::numeric SizeType> // need test
+dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
+    dynamic_matrix<float> const& rhs) {
+
+  if (size_.y == rhs.size_.x) {
+#if defined __linux__
+#if defined __AVX2__
+    // aliases
+    auto const& nrows_of_lhs{size_.x};
+    auto const& ncolumns_of_lhs{size_.y};
+    auto const& nrows_of_rhs{rhs.size_.x};
+    auto const& ncolumns_of_rhs{rhs.size_.y};
+
+    // new matrix creation
+    matrix_data_size_ = nrows_of_lhs * ncolumns_of_rhs;
+    auto result{new DataType[matrix_data_size_]{}};
+
+    // transversal pointers
+    auto tp_result{result};
+
+    for (SizeType row{0}; row < nrows_of_rhs; ++row) {
+      row_of_product(row, matrix_data_, rhs.matrix_data_, tp_result,
+                     ncolumns_of_rhs);
+      tp_result += ncolumns_of_rhs;
+    }
+
+    // cleaning and updating matrix
+    delete[] matrix_data_;
+    matrix_data_ = result;
+    size_.x = nrows_of_lhs;
+    size_.y = ncolumns_of_rhs;
+
+    return *this;
   } else {
-    throw std::length_error{"matrices cannot be added, on a+b call"};
+    throw std::length_error{"matrices cannot be multiplied"};
+  }
+#endif // __AVX2__
+#endif // __linux__
+}
+
+template <concepts::numeric DataType, concepts::numeric SizeType>
+template <concepts::numeric T>
+void dynamic_matrix<DataType, SizeType>::row_of_product(
+    SizeType const row, T* const a, T* const b, T* const c,
+    SizeType ncolumn_of_b) noexcept {
+#if defined __linux__
+#if defined __AVX2__
+  auto const& ncolumn_of_a{size_.y};
+  SizeType const partial_bound{ncolumn_of_b / block_size_};
+  SizeType const remainder_bound{ncolumn_of_b % block_size_};
+  int arr_mask[block_size_]{};
+
+  if constexpr (std::is_same_v<T, float>) {
+
+    for (int column{0}; column < ncolumn_of_a; ++column) {
+      auto a_row_col{_mm256_set1_ps(a[row * ncolumn_of_a + column])};
+      auto b_block_pointer{b};
+      auto c_block_pointer{c};
+
+      for (SizeType k{0}; k < partial_bound; ++k) {
+        auto b_row_block{_mm256_loadu_ps(b_block_pointer)};
+        auto c_row_block{_mm256_loadu_ps(c_block_pointer)};
+        c_row_block = _mm256_fmadd_ps(a_row_col, b_row_block, c_row_block);
+        _mm256_storeu_ps(c_block_pointer, c_row_block);
+        b_block_pointer += block_size_;
+        c_block_pointer += block_size_;
+      }
+
+      if (remainder_bound != 0) {
+        for (SizeType i{0}; i < remainder_bound; ++i) {
+          arr_mask[i] = -1;
+        }
+        __m256i mask{
+            _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+        auto b_row_block{_mm256_maskload_ps(b_block_pointer, mask)};
+        auto c_row_block{_mm256_maskload_ps(c_block_pointer, mask)};
+        c_row_block = _mm256_fmadd_ps(a_row_col, b_row_block, c_row_block);
+        _mm256_maskstore_ps(c_block_pointer, mask, c_row_block);
+      }
+    }
+
+#endif // __AVX2__
+#endif // __linux__
   }
 }
-
-template <concepts::numeric DataType>
-dynamic_matrix<DataType>::~dynamic_matrix() {
-  delete[] matrix_data_;
-}
-
-template <concepts::numeric DataType>
-DataType* const dynamic_matrix<DataType>::raw_transpose() const {
-  DataType* transpose{new DataType[matrix_data_size_]};
-}
-
 } // namespace brocolio::container

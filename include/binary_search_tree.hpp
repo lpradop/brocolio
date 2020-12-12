@@ -21,7 +21,7 @@ public:
   binary_search_tree(
       std::function<bool(KeyType const&, KeyType const&)> ordering_function);
 
-  ~binary_search_tree(); // TODO
+  ~binary_search_tree();
 
   iterator begin() const noexcept { return iterator{this, root_}; }
   iterator end() const noexcept { return iterator{this, nullptr}; }
@@ -69,6 +69,7 @@ private:
   node const* min_key_node(node const* root) const noexcept;
   node const* max_key_node(node const* root) const noexcept;
   bool remove_node(node* given_node) noexcept;
+  void destructor_helper(node* root) noexcept;
 };
 
 template <class KeyType>
@@ -125,7 +126,7 @@ binary_search_tree<KeyType>::binary_search_tree(
 
 template <class KeyType>
 binary_search_tree<KeyType>::~binary_search_tree() {
-  // TODO
+  if (root_ != nullptr) destructor_helper(root_);
 }
 
 template <class KeyType>
@@ -197,7 +198,8 @@ binary_search_tree<KeyType>::search_node(node const* const root,
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node*
-binary_search_tree<KeyType>::search_node(node* const root, KeyType const key) noexcept {
+binary_search_tree<KeyType>::search_node(node* const root,
+                                         KeyType const key) noexcept {
   return const_cast<node*>(std::as_const(*this).search_node(root, key));
 }
 
@@ -270,7 +272,8 @@ void binary_search_tree<KeyType>::print(transversal_method const method) const {
 template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
 binary_search_tree<KeyType>::successor_node(
-    node const* const given_node, transversal_method const method) const noexcept {
+    node const* const given_node,
+    transversal_method const method) const noexcept {
   switch (method) {
   case transversal_method::pre_order:
     if (given_node->left != nullptr) {
@@ -327,8 +330,8 @@ binary_search_tree<KeyType>::successor_node(
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node*
-binary_search_tree<KeyType>::successor_node(node* const given_node,
-                                            transversal_method const method) noexcept {
+binary_search_tree<KeyType>::successor_node(
+    node* const given_node, transversal_method const method) noexcept {
   return const_cast<node*>(
       std::as_const(*this).successor_node(given_node, method));
 }
@@ -336,7 +339,8 @@ binary_search_tree<KeyType>::successor_node(node* const given_node,
 template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
 binary_search_tree<KeyType>::predecessor_node(
-    node const* const given_node, transversal_method const method) const noexcept {
+    node const* const given_node,
+    transversal_method const method) const noexcept {
   switch (method) {
   case transversal_method::pre_order:
     if (given_node == root_) {
@@ -389,15 +393,16 @@ binary_search_tree<KeyType>::predecessor_node(
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node*
-binary_search_tree<KeyType>::predecessor_node(node* const given_node,
-                                              transversal_method const method) noexcept {
+binary_search_tree<KeyType>::predecessor_node(
+    node* const given_node, transversal_method const method) noexcept {
   return const_cast<node*>(
       std::as_const(*this).predecessor_node(given_node, method));
 }
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
-binary_search_tree<KeyType>::min_key_node(node const* const root) const noexcept {
+binary_search_tree<KeyType>::min_key_node(
+    node const* const root) const noexcept {
   if (root != nullptr) {
     auto current_node{root};
     while (current_node->left != nullptr) current_node = current_node->left;
@@ -409,7 +414,8 @@ binary_search_tree<KeyType>::min_key_node(node const* const root) const noexcept
 
 template <class KeyType>
 typename binary_search_tree<KeyType>::node const*
-binary_search_tree<KeyType>::max_key_node(node const* const root) const noexcept {
+binary_search_tree<KeyType>::max_key_node(
+    node const* const root) const noexcept {
   if (root != nullptr) {
     auto current_node{root};
     while (current_node->right != nullptr) current_node = current_node->right;
@@ -478,4 +484,14 @@ bool binary_search_tree<KeyType>::remove_node(node* const given_node) noexcept {
   }
 }
 
+template <class KeyType>
+void binary_search_tree<KeyType>::destructor_helper(node* root) noexcept {
+  if (root->left == nullptr && root->right == nullptr) {
+    delete root;
+  } else if (root->left != nullptr) {
+    destructor_helper(root->left);
+  } else if (root->right != nullptr) {
+    destructor_helper(root->right);
+  }
+}
 } // namespace brocolio::container
