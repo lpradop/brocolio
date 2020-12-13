@@ -9,6 +9,11 @@ struct block_size<int> {
 };
 
 template <>
+struct block_size<short> {
+  static unsigned int constexpr value{16};
+};
+
+template <>
 struct block_size<float> {
   static unsigned int constexpr value{8};
 };

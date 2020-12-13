@@ -2,8 +2,8 @@
 #include <iostream>
 #include <limits>
 int main() {
-  brocolio::container::dynamic_matrix<float> m{{1, 2}};
-  brocolio::container::dynamic_matrix<float> n{{1, 4}, {1, 4}};
+  brocolio::container::dynamic_matrix<int> m{{1, 2}};
+  brocolio::container::dynamic_matrix<int> n{{1, 4}, {1, 4}};
   std::cout << m.size().x << "," << m.size().y << std::endl;
   m=m * n;
   for (int i{0}; i < m.size().x; ++i) {

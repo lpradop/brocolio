@@ -27,7 +27,7 @@ public:
   dynamic_matrix operator*(dynamic_matrix const& rhs) const;
   dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
   dynamic_matrix<int>& operator+=(dynamic_matrix<int> const& rhs);
-  dynamic_matrix<float>& operator*=(dynamic_matrix<float> const& rhs);
+  dynamic_matrix& operator*=(dynamic_matrix const& rhs);
   DataType& operator()(SizeType i, SizeType j) const;
 
   ordered_pair<SizeType, SizeType> size() const noexcept { return size_; }
@@ -279,29 +279,32 @@ dynamic_matrix<DataType, SizeType>::operator*(dynamic_matrix const& rhs) const {
   }
 }
 
-template <concepts::numeric DataType, concepts::numeric SizeType> // need test
-dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
-    dynamic_matrix<float> const& rhs) {
-
+template <concepts::numeric DataType, concepts::numeric SizeType>
+dynamic_matrix<DataType, SizeType>&
+dynamic_matrix<DataType, SizeType>::operator*=(dynamic_matrix const& rhs) {
   if (size_.y == rhs.size_.x) {
-#if defined __linux__
-#if defined __AVX2__
     // aliases
     auto const& nrows_of_lhs{size_.x};
     auto const& nrows_of_rhs{rhs.size_.x};
     auto const& ncolumns_of_rhs{rhs.size_.y};
 
     // new matrix creation
+
     SizeType const new_matrix_data_size{nrows_of_lhs * ncolumns_of_rhs};
-    auto result{new DataType[new_matrix_data_size]{}};
+    auto const result{new DataType[new_matrix_data_size]{}};
 
     // transversal pointers
+    auto rhs_pointer{rhs.matrix_data_};
+    auto result_pointer{result};
+
+    // product computation
     for (SizeType i{0}; i < nrows_of_rhs; ++i) {
       for (SizeType k{0}; k < nrows_of_rhs; ++k) {
-        product_helper(matrix_data_[i * nrows_of_rhs + k],
-                       &rhs.matrix_data_[k * ncolumns_of_rhs],
-                       &result[i * nrows_of_rhs], ncolumns_of_rhs);
+        product_helper(matrix_data_[i * nrows_of_rhs + k], rhs_pointer,
+                       result_pointer, ncolumns_of_rhs);
+        rhs_pointer += nrows_of_rhs;
       }
+      result_pointer += nrows_of_rhs;
     }
 
     // cleaning and updating matrix
@@ -313,10 +316,9 @@ dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator*=(
 
     return *this;
   } else {
-    throw std::length_error{"matrices cannot be multiplied"};
+    throw std::length_error{
+        "matrices cannot be multiplied, incompatible sizes"};
   }
-#endif // __AVX2__
-#endif // __linux__
 }
 
 // calculate scalar*[......] (row vector of b) and accumulate the result into c
@@ -352,15 +354,42 @@ void dynamic_matrix<DataType, SizeType>::product_helper(
     }
 
     if (remainder_bound != 0) {
-      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+      auto mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
       auto b_block{_mm256_maskload_ps(b_block_pointer, mask)};
       auto c_block{_mm256_maskload_ps(c_block_pointer, mask)};
       c_block = _mm256_fmadd_ps(scalar_block, b_block, c_block);
       _mm256_maskstore_ps(c_block_pointer, mask, c_block);
     }
+  } else if (std::is_same_v<DataType, int>) {
+
+    auto scalar_block{_mm256_set1_epi32(scalar)};
+
+    for (SizeType i{0}; i < partial_bound; ++i) {
+      auto b_block{
+          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(b_block_pointer))};
+      auto c_block{
+          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(c_block_pointer))};
+      c_block =
+          _mm256_add_epi32(_mm256_mullo_epi32(scalar_block, b_block), c_block);
+
+      _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(c_block_pointer),
+                          c_block);
+      b_block_pointer += block_size_;
+      c_block_pointer += block_size_;
+    }
+
+    if (remainder_bound != 0) {
+      auto mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+      auto b_block{_mm256_maskload_epi32(b_block_pointer, mask)};
+      auto c_block{_mm256_maskload_epi32(c_block_pointer, mask)};
+      c_block =
+          _mm256_add_epi32(_mm256_mullo_epi32(scalar_block, b_block), c_block);
+
+      _mm256_maskstore_epi32(c_block_pointer, mask, c_block);
+    }
+  }
 
 #endif // __AVX2__
 #endif // __linux__
-  }
 }
 } // namespace brocolio::container
