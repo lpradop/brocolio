@@ -1,15 +1,37 @@
 using LinearAlgebra
-ncol = 2
-A = [1 2]
-B = [1 4 ; 1 4]
-C = [0 0 ; 0 0]
-print(A*B,'\n')
+using Random
+# cycle graph
 
-# function row(i, C, A, B,ncol)
-#     for k = 1:ncol
-#         C[i,:] += A[i,k] * B[k,:]
-#     end
-# end
+function generateWeights(X)
+    for i in 1:length(X)
+        X[i] = rand((1:80))
+    end
+end
 
-# row(2,C,A,B,ncol)
-# print(A * B,'\n',C)
+function minRepeatedRoute(X)
+    return 2 * (sum(X) - maximum(X))
+end
+
+function repeatedVsCircular(X, sample_size=1e5)
+    # return the probability of min cost (repeated, circular)
+    repeated_route_count  = 0
+    circular_route_count = 0
+
+    for i = 1:sample_size
+        generateWeights(X)
+        if minRepeatedRoute(X) < sum(X)
+            repeated_route_count += 1
+        else
+            circular_route_count += 1
+        end
+    end
+
+    return (repeated_route_count / sample_size,
+        circular_route_count / sample_size)
+end
+
+
+for i in 3:10
+    X = zeros(i)
+    println(repeatedVsCircular(X))
+end

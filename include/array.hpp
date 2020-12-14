@@ -3,7 +3,9 @@
 #include <stdexcept>
 namespace brocolio::container {
 // array class wrapper by Brocolio de la CHUNSA
-template <class DataType, std::size_t Size> class array {
+// TODO add type casting
+template <class DataType, std::size_t Size>
+class array {
 public:
   static_assert(Size > 0, "array size must be at least 1");
   class iterator;
@@ -93,7 +95,7 @@ array<DataType, Size>::array() : c_array_(new DataType[Size]{}) {}
 
 template <class DataType, std::size_t Size>
 array<DataType, Size>::array(array const& other)
-    : c_array_(new DataType[Size]) {
+    : c_array_(new DataType[Size]{}) {
   if (this->size() == other.size()) {
     for (std::size_t i = 0; i < Size; ++i) {
       c_array_[i] = other.c_array_[i];
@@ -166,7 +168,8 @@ array<DataType, Size>::operator[](std::size_t const index) const {
   }
 }
 
-template <class DataType, std::size_t Size> array<DataType, Size>::~array() {
+template <class DataType, std::size_t Size>
+array<DataType, Size>::~array() {
   delete[] c_array_;
 }
 

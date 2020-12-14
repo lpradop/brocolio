@@ -1,5 +1,6 @@
 #pragma once
 #include "array.hpp"
+#include <cmath>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -29,18 +30,30 @@ public:
                            std::string dict_filename) const;
 
   template <typename... Args>
-  container::array<std::size_t, UpperBound - LowerBound + 1>
+  void frequency_based_decrypt_file(std::string input_filename,
+                                    std::string output_filename,
+                                    std::string sample_filename,
+                                    Args... sample_filenames) const;
+
+  template <typename... Args>
+  container::array<double, UpperBound - LowerBound + 1>
   generate_character_frequency(std::string filename, Args... filenames) const;
 
 private:
   int cipher_number(int x, int shift) const;
-  std::size_t index_map(int x) const;
   std::string const tmp_filename{"../src/tmp.txt"};
 
   template <typename... Args>
   void merge_files(std::string filename, Args...) const;
 
   void merge_files() const;
+
+  void compute_relative_frequency(
+      container::array<double, range_size>& frequencies) const noexcept;
+
+  double relative_frequency_diff(
+      container::array<double, range_size> const& a,
+      container::array<double, range_size> const& b) const noexcept;
 };
 
 template <int LowerBound, int UpperBound>
@@ -110,7 +123,7 @@ caesar_cipher<LowerBound, UpperBound>::brute_force_decrypt_file(
 
 template <int LowerBound, int UpperBound>
 template <typename... Args>
-container::array<std::size_t, UpperBound - LowerBound + 1>
+container::array<double, UpperBound - LowerBound + 1>
 caesar_cipher<LowerBound, UpperBound>::generate_character_frequency(
     std::string filename, Args... filenames) const {
 
@@ -119,23 +132,45 @@ caesar_cipher<LowerBound, UpperBound>::generate_character_frequency(
 
   std::ifstream merged_file{tmp_filename};
   merge_files(filename, filenames...);
-  container::array<std::size_t, range_size> frequencies{};
+  container::array<double, range_size> frequencies{};
 
   for (int ch{}; ch >= 0;) {
     ch = merged_file.get();
     if (ch >= 0 && LowerBound <= ch && ch <= UpperBound) {
-      ++frequencies[index_map(ch)];
+      ++frequencies[static_cast<std::size_t>(ch - LowerBound)];
     }
-    return std::move(frequencies);
   }
+
+  return std::move(frequencies);
 }
 
 template <int LowerBound, int UpperBound>
-std::size_t caesar_cipher<LowerBound, UpperBound>::index_map(int x) const {
-  if (LowerBound <= x && x <= UpperBound) {
-    return static_cast<std::size_t>(x - LowerBound);
-  } else {
-    throw std::domain_error{"invalid x argument"};
+template <typename... Args>
+void caesar_cipher<LowerBound, UpperBound>::frequency_based_decrypt_file(
+    std::string input_filename, std::string output_filename,
+    std::string sample_filename, Args... sample_filenames) const {
+
+  auto sample_frequencies{
+      generate_character_frequency(sample_filename, sample_filenames...)};
+  compute_relative_frequency(sample_frequencies);
+
+  double min_diff{2.0};
+  container::array<double, range_size> frequency_diffs{};
+  for (int i{0}; i < range_size; ++i) {
+    decrypt_file(input_filename, output_filename, i);
+    auto tmp_frequencies{generate_character_frequency(output_filename)};
+    compute_relative_frequency(tmp_frequencies);
+
+    frequency_diffs[i] =
+        relative_frequency_diff(sample_frequencies, tmp_frequencies);
+    min_diff = frequency_diffs[i] <= min_diff ? frequency_diffs[i] : min_diff;
+  }
+
+  for (int i{0}; i < range_size; ++i) {
+    if (min_diff == frequency_diffs[i]) {
+      decrypt_file(input_filename, output_filename, i);
+      break;
+    }
   }
 }
 
@@ -151,4 +186,28 @@ void caesar_cipher<LowerBound, UpperBound>::merge_files(
 
 template <int LowerBound, int UpperBound>
 void caesar_cipher<LowerBound, UpperBound>::merge_files() const {}
+
+template <int LowerBound, int UpperBound>
+void caesar_cipher<LowerBound, UpperBound>::compute_relative_frequency(
+    container::array<double, range_size>& frequencies) const noexcept {
+  double sample_size{0};
+  for (auto const freq : frequencies) {
+    sample_size += freq;
+  }
+  for (auto& freq : frequencies) {
+    freq /= sample_size;
+  }
+}
+
+template <int LowerBound, int UpperBound>
+double caesar_cipher<LowerBound, UpperBound>::relative_frequency_diff(
+    container::array<double, range_size> const& a,
+    container::array<double, range_size> const& b) const noexcept {
+  double frequency_diff{0};
+  for (int i{0}; i < range_size; ++i) {
+    frequency_diff += std::abs(a[i] - b[i]);
+  }
+  return frequency_diff;
+}
+
 } // namespace brocolio::crypthography

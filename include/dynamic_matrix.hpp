@@ -9,7 +9,7 @@
 namespace brocolio::container {
 
 // Dynamic_Matrix template prototype by brocolio de la CHUNSA
-// TODO be able to choose the size type of the matrix
+// support for int32 and float types for now
 template <concepts::numeric DataType = int,
           concepts::numeric SizeType = unsigned int>
 class dynamic_matrix {
@@ -25,8 +25,7 @@ public:
   dynamic_matrix& operator=(dynamic_matrix&&) noexcept;
   dynamic_matrix operator+(dynamic_matrix const& rhs) const;
   dynamic_matrix operator*(dynamic_matrix const& rhs) const;
-  dynamic_matrix<float>& operator+=(dynamic_matrix<float> const& rhs);
-  dynamic_matrix<int>& operator+=(dynamic_matrix<int> const& rhs);
+  dynamic_matrix& operator+=(dynamic_matrix const& rhs);
   dynamic_matrix& operator*=(dynamic_matrix const& rhs);
   DataType& operator()(SizeType i, SizeType j) const;
 
@@ -57,15 +56,16 @@ template <concepts::numeric DataType, concepts::numeric SizeType>
 dynamic_matrix<DataType, SizeType>::dynamic_matrix(
     dynamic_matrix const& other) noexcept
     : dynamic_matrix{other.size_.x, other.size_.y} {
-  for (SizeType i{0}; i < matrix_data_size_; ++i)
+  for (SizeType i{0}; i < matrix_data_size_; ++i) {
     matrix_data_[i] = other.matrix_data_[i];
+  }
 }
 
 template <concepts::numeric DataType, concepts::numeric SizeType>
 dynamic_matrix<DataType, SizeType>::dynamic_matrix(
     dynamic_matrix&& other) noexcept
     : size_{other.size_}, matrix_data_size_{other.matrix_data_size_} {
-  if (matrix_data_ != nullptr) delete[] matrix_data_;
+  delete[] matrix_data_;
   matrix_data_ = other.matrix_data_;
   other.matrix_data_ = nullptr;
 }
@@ -136,119 +136,62 @@ dynamic_matrix<DataType, SizeType>::operator()(SizeType const i,
 }
 
 template <concepts::numeric DataType, concepts::numeric SizeType>
-dynamic_matrix<float>& dynamic_matrix<DataType, SizeType>::operator+=(
-    dynamic_matrix<float> const& rhs) {
+dynamic_matrix<DataType, SizeType>&
+dynamic_matrix<DataType, SizeType>::operator+=(dynamic_matrix const& rhs) {
 
   if (size_ == rhs.size_) {
-#if defined __linux__
-#if defined __AVX2__
-    SizeType constexpr block_size{8};
-#elif defined __AVX__
-    SizeType constexpr block_size{4};
-#endif // __AVX2__
 
-    SizeType const partial_bound{matrix_data_size_ / block_size};
-    short const remainder_bound{
-        static_cast<short>(matrix_data_size_ % block_size)};
-    int arr_mask[block_size]{};
-    float* block_lhs_pointer{matrix_data_};
-    float* block_rhs_pointer{rhs.matrix_data_};
+    SizeType const partial_bound{matrix_data_size_ / block_size_};
+    SizeType const remainder_bound{matrix_data_size_ % block_size_};
+    int arr_mask[block_size_]{};
+    auto block_lhs_pointer{matrix_data_};
+    auto block_rhs_pointer{rhs.matrix_data_};
 
-#if defined __AVX2__
+    for (SizeType i{0}; i < remainder_bound; ++i) {
+      arr_mask[i] = -1;
+    }
+
     for (SizeType i{0}; i < partial_bound; ++i) {
-      __m256 simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
-      __m256 simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
-      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
-      _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
-      block_lhs_pointer += block_size;
-      block_rhs_pointer += block_size;
+
+      if constexpr (std::is_same_v<DataType, float>) {
+        auto simd_lhs{_mm256_loadu_ps(block_lhs_pointer)};
+        auto simd_rhs{_mm256_loadu_ps(block_rhs_pointer)};
+        simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+        _mm256_storeu_ps(block_lhs_pointer, simd_lhs);
+
+      } else if (std::is_same_v<DataType, int>) {
+        auto simd_lhs{_mm256_loadu_si256(
+            reinterpret_cast<__m256i_u*>(block_lhs_pointer))};
+        auto simd_rhs{_mm256_loadu_si256(
+            reinterpret_cast<__m256i_u*>(block_rhs_pointer))};
+
+        simd_lhs = _mm256_add_epi32(simd_lhs, simd_rhs);
+        _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(block_rhs_pointer),
+                            simd_lhs);
+      }
+
+      block_lhs_pointer += block_size_;
+      block_rhs_pointer += block_size_;
     }
 
     if (remainder_bound != 0) {
-      for (short i{0}; i < remainder_bound; ++i) {
-        arr_mask[i] = -1;
+      auto mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
+
+      if constexpr (std::is_same_v<DataType, float>) {
+        auto simd_lhs{_mm256_maskload_ps(block_lhs_pointer, mask)};
+        auto simd_rhs{_mm256_maskload_ps(block_rhs_pointer, mask)};
+        simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
+        _mm256_maskstore_ps(block_lhs_pointer, mask, simd_lhs);
+
+      } else if (std::is_same_v<DataType, int>) {
+        auto simd_lhs{_mm256_maskload_epi32(block_lhs_pointer, mask)};
+        auto simd_rhs{_mm256_maskload_epi32(block_rhs_pointer, mask)};
+        simd_lhs = _mm256_add_epi32(simd_lhs, simd_rhs);
+        _mm256_maskstore_epi32(block_lhs_pointer, mask, simd_lhs);
       }
-      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
-      __m256 simd_lhs{_mm256_maskload_ps(block_lhs_pointer, mask)};
-      __m256 simd_rhs{_mm256_maskload_ps(block_rhs_pointer, mask)};
-      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
-      _mm256_maskstore_ps(block_lhs_pointer, mask, simd_lhs);
-    }
-#elif defined __AVX__
-    // AVX code
-#endif // __AVX2__
-#endif // __linux__
-
-  } else {
-    throw std::length_error{"gaaa"};
-  }
-  return *this;
-}
-
-template <concepts::numeric DataType, concepts::numeric SizeType>
-dynamic_matrix<int>&
-dynamic_matrix<DataType, SizeType>::operator+=(dynamic_matrix<int> const& rhs) {
-
-  if (size_ == rhs.size_) {
-#if defined __linux__
-#if defined __AVX2__
-    SizeType constexpr block_size{8};
-    // __m256i mask{_mm256_set1_epi32(-1)};
-#elif defined __AVX__
-    SizeType constexpr block_size{4};
-#endif // __AVX2__
-
-    SizeType const partial_bound{matrix_data_size_ / block_size};
-    short const remainder_bound{
-        static_cast<short>(matrix_data_size_ % block_size)};
-    int arr_mask[block_size]{};
-    int* block_lhs_pointer{matrix_data_};
-    int* block_rhs_pointer{rhs.matrix_data_};
-
-#if defined __AVX2__
-    // block addition
-    for (SizeType i{0}; i < partial_bound; ++i) {
-      // registers creation
-      __m256i simd_lhs{
-          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(block_lhs_pointer))};
-      __m256i simd_rhs{
-          _mm256_loadu_si256(reinterpret_cast<__m256i_u*>(block_rhs_pointer))};
-
-      // addition of registers
-      simd_lhs = _mm256_add_epi32(simd_lhs, simd_rhs);
-
-      // store partial result on lhs
-      _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(block_rhs_pointer),
-                          simd_lhs);
-
-      block_lhs_pointer += block_size;
-      block_rhs_pointer += block_size;
     }
 
-    // remainder elements addition
-    if (remainder_bound != 0) {
-      // setting mask
-      for (short i{0}; i < remainder_bound; ++i) {
-        arr_mask[i] = -1;
-      }
-      __m256i mask{_mm256_loadu_si256(reinterpret_cast<__m256i_u*>(arr_mask))};
-      // registers creation
-      __m256i simd_lhs{_mm256_maskload_epi32(block_lhs_pointer, mask)};
-      __m256i simd_rhs{_mm256_maskload_epi32(block_rhs_pointer, mask)};
-
-      // addition of registers
-      simd_lhs = _mm256_add_ps(simd_lhs, simd_rhs);
-
-      // store remainder result on lhs
-      _mm256_maskstore_epi32(block_lhs_pointer, mask, simd_lhs);
-    }
-
-#elif defined __AVX__
-    // AVX code
-#endif // __AVX2__
-#endif // __linux__
     return *this;
-
   } else {
     throw std::length_error{"matrices cannot be added"};
   }
@@ -326,8 +269,6 @@ template <concepts::numeric DataType, concepts::numeric SizeType>
 void dynamic_matrix<DataType, SizeType>::product_helper(
     DataType const scalar, DataType* const b, DataType* const c,
     SizeType const ncolumn_of_b) noexcept {
-#if defined __linux__
-#if defined __AVX2__
   // variables for block by block computation
   SizeType const partial_bound{ncolumn_of_b / block_size_};
   SizeType const remainder_bound{ncolumn_of_b % block_size_};
@@ -388,8 +329,5 @@ void dynamic_matrix<DataType, SizeType>::product_helper(
       _mm256_maskstore_epi32(c_block_pointer, mask, c_block);
     }
   }
-
-#endif // __AVX2__
-#endif // __linux__
 }
 } // namespace brocolio::container
