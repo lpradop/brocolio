@@ -30,16 +30,18 @@ public:
   DataType& operator()(SizeType i, SizeType j) const;
 
   ordered_pair<SizeType, SizeType> size() const noexcept { return size_; }
+  SizeType rows() const noexcept { return size_.x; };
+  SizeType columns() const noexcept { return size_.y; };
+
+  void print() const noexcept;
   void resize(SizeType rows, SizeType columns); // TODO
-  dynamic_matrix transpose() const noexcept;
+  dynamic_matrix transpose() const noexcept;    // todo
 
 private:
+  static SizeType constexpr block_size_{simd::block_size_v<DataType>};
   ordered_pair<SizeType, SizeType> size_{0, 0};
   SizeType matrix_data_size_{0};
   DataType* matrix_data_{nullptr};
-  static SizeType constexpr block_size_{simd::block_size_v<DataType>};
-
-  DataType* raw_transpose() const noexcept;
 
   void product_helper(DataType s, DataType* b, DataType* c,
                       SizeType n) noexcept;
@@ -247,6 +249,7 @@ dynamic_matrix<DataType, SizeType>::operator*=(dynamic_matrix const& rhs) {
                        result_pointer, ncolumns_of_rhs);
         rhs_pointer += nrows_of_rhs;
       }
+      rhs_pointer = rhs.matrix_data_;
       result_pointer += nrows_of_rhs;
     }
 
@@ -328,6 +331,18 @@ void dynamic_matrix<DataType, SizeType>::product_helper(
 
       _mm256_maskstore_epi32(c_block_pointer, mask, c_block);
     }
+  }
+}
+
+// row major order print
+template <concepts::numeric DataType, concepts::numeric SizeType>
+void dynamic_matrix<DataType, SizeType>::print() const noexcept {
+  for (SizeType i{0}; i < matrix_data_size_; ++i) {
+    if (i % size_.y == 0) {
+      std::cout << "row: " << i / size_.y << std::endl;
+    }
+
+    std::cout << matrix_data_[i] << std::endl;
   }
 }
 } // namespace brocolio::container
